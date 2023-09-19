@@ -1,0 +1,51 @@
+[build-system]
+requires = [
+    "setuptools>=62.0",
+    "wheel>=0.37.1",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pypackmol"
+description = "A python wrapper for packmol"
+authors = [
+    { name = "João Victor da Silva Guerra", email = "jvsguerra@gmail.com" },
+]
+maintainers = [
+    { name = "João Victor da Silva Guerra", email = "jvsguerra@gmail.com" },
+]
+license = { file = "LICENSE" }
+readme = { file = "README.md", content-type = "text/x-markdown" }
+requires-python = ">=3.9"
+keywords = [
+    "computational chemistry",
+    "atom packing",
+    "sphere packing"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = ["MDAnalysis==2.6.1"]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["pytest==7.4.2", "pytest-cov==4.1.0", "black==23.9.1", "flake8==6.1.0"]
+
+[project.urls]
+homepage = "https://github.com/jvsguerra/pypackmol"
+issues = "https://github.com/jvsguerra/pypackmol/issues"
+
+[tool.setuptools]
+packages = ["pypackmol"]
+
+[tool.setuptools.dynamic]
+version = { attr = "pypackmol.__version__" }

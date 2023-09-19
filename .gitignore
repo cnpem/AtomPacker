@@ -1,6 +1,12 @@
 # packmol
 packmol.tar.gz
 packmol/
+packmol.*
+
+# Debug
+run.py
+output.*
+*pdb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
