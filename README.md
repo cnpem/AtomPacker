@@ -19,7 +19,7 @@ A python wrapper for packmol.
 ## Installation
 
 ```bash
-pip install pypackmol
+pip install .
 ```
 
 ## Usage
