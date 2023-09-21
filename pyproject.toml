@@ -1,8 +1,5 @@
 [build-system]
-requires = [
-    "setuptools>=62.0",
-    "wheel>=0.37.1",
-]
+requires = ["setuptools>=62.0", "wheel>=0.37.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -17,11 +14,7 @@ maintainers = [
 license = { file = "LICENSE" }
 readme = { file = "README.md", content-type = "text/x-markdown" }
 requires-python = ">=3.9"
-keywords = [
-    "computational chemistry",
-    "atom packing",
-    "sphere packing"
-]
+keywords = ["computational chemistry", "atom packing", "sphere packing"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -34,7 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3 :: Only",
 ]
-dependencies = ["MDAnalysis==2.6.1"]
+dependencies = ["MDAnalysis==2.6.1", "numpy==1.26.0", "pyKVFinder==0.6.6"]
 dynamic = ["version"]
 
 [project.optional-dependencies]
