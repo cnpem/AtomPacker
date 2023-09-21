@@ -16,6 +16,11 @@ A python wrapper for packmol.
     ./build-packmol.sh
     ```
 
+## Python requirements
+
+- [MDAnalysis](https://pypi.org/project/MDAnalysis)
+- [pyKVFinder](https://pypi.org/project/pyKVFinder)
+
 ## Installation
 
 ```bash

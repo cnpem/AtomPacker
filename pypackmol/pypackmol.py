@@ -259,7 +259,7 @@ def packmol(structures, tolerance=None):
 
         run_packmol()
     except PackmolError:
-        # todo: Deal with error
+        # TODO: Deal with error
         new = None
     else:
         new = load_packmol_output()
