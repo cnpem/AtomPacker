@@ -1,5 +1,7 @@
 import os
+import pathlib
 import sys
+from typing import Dict, List, Optional, Union
 
 if (sys.version_info[0] < 3) or (sys.version_info[1] <= 4):
     import subprocess32 as subprocess
@@ -8,7 +10,9 @@ else:
 
 import warnings
 
-import MDAnalysis as mda
+import MDAnalysis
+import numpy
+import pyKVFinder
 
 __all__ = ["packmol", "PackmolStructure"]
 
@@ -37,7 +41,9 @@ class PackmolStructure(object):
       each item in the list should be a single line instruction
     """
 
-    def __init__(self, structure, number, instructions):
+    def __init__(
+        self, structure: MDAnalysis.AtomGroup, number: int, instructions: List[str]
+    ):
         self.structure = structure
         self.number = number
         self.instructions = instructions
@@ -75,40 +81,141 @@ class PackmolStructure(object):
         # so copy the true names, change, write out, change back to real
         old_resnames = self.structure.residues.resnames.copy()
         self.structure.residues.resnames = "R{}".format(index)
-        with mda.Writer(PACKMOL_STRUCTURE_FILES.format(index)) as w:
+        with MDAnalysis.Writer(PACKMOL_STRUCTURE_FILES.format(index)) as w:
             w.write(self.structure)
         self.structure.residues.resnames = old_resnames
 
 
-def make_packmol_input(structures, tolerance=None):
+class CavityDetector(object):
+    def __init__(
+        self,
+        smc: PackmolStructure,
+        vdw: Optional[Union[str, pathlib.Path, Dict[str, Dict[str, float]]]] = None,
+        verbose: bool = False,
+    ):
+        self.verbose = verbose
+        self.vdw = self._load_vdw(vdw)
+        self.atomic = self._get_atomic(smc)
+
+    def _load_vdw(self, vdw):
+        # Get van der Waals radii dictionary
+        if self.verbose:
+            print("> Loading atomic dictionary file")
+
+        if vdw is None:
+            self.vdw = pyKVFinder.read_vdw()
+        elif type(vdw) in [str, pathlib.Path]:
+            self.vdw = pyKVFinder.read_vdw(vdw)
+        elif type(self.vdw) in [dict]:
+            self.vdw = vdw
+        else:
+            raise TypeError(
+                "`vdw` must be a string or a pathlib.Path of a van der Waals radii from .dat file."
+            )
+
+    def _get_atomic(self, smc):
+        if self.verbose:
+            print("> Getting atomic coordinates")
+
+        # Get radius of atoms
+        radius = []
+        for resname, atom, atom_symbol in zip(
+            smc.structure.atoms.resnames,
+            smc.structure.atoms.names,
+            smc.structure.atoms.types,
+        ):
+            if resname in self.vdw.keys() and atom in self.vdw[resname].keys():
+                radius.append(self.vdw[resname][atom])
+            else:
+                radius.append(self.vdw["GEN"][atom_symbol.upper()])
+        radius = numpy.array(radius)
+
+        # Get atomic coordinates
+        atomic = numpy.c_[
+            smc.structure.atoms.resnums,
+            smc.structure.atoms.chainIDs
+            if "chainIDs" in smc.structure.atoms._SETATTR_WHITELIST
+            else numpy.full(smc.structure.atoms.resnums.shape, ""),
+            smc.structure.atoms.resnames,
+            smc.structure.atoms.names,
+            smc.structure.atoms.positions,
+            radius,
+        ]  # shape (n_atoms, 7)
+
+        return atomic
+
+    def detect(
+        self,
+        step: float = 0.6,
+        probe_in: float = 1.4,
+        probe_out: float = 4.0,
+        removal_distance: float = 2.4,
+        volume_cutoff: float = 5.0,
+    ):
+        if self.verbose:
+            print("> Detecting cavities")
+
+        # Calculate vertices from grid
+        vertices = pyKVFinder.get_vertices(self.atomic, probe_out, step)
+
+        # Detect cavity
+        ncav, cavities = pyKVFinder.detect(
+            self.atomic,
+            vertices,
+            step,
+            probe_in,
+            probe_out,
+            removal_distance,
+            volume_cutoff,
+        )
+
+        return ncav, cavities, boundaries
+
+
+def make_packmol_input(
+    smc: PackmolStructure, np_atom: PackmolStructure, atom_radius: float = None
+):
     """Convert the call into a Packmol usable input file
 
     Parameters
     ----------
-    structures : list
-      list of PackmolStructure objects
-    tolerance : float, optional
-      minimum distance between molecules, defaults to 2.0
+    smc : PackmolStruture
+      Supramolecular cage
+    np_atom : PackmolStructure
+      Nanoparticle atom
+    atom_radius : float, optional
+      Half of Packmol tolerance, ie., minimum distance between nanoparticle
+      atoms, defaults to 1.0
     """
     # Check if all structures are suitable, fix them if needed
-    for s in structures:
-        if not hasattr(s.structure, "resnames"):
-            s.structure.universe.add_TopologyAttr("resnames")
+    for structure in [smc, np_atom]:
+        if not hasattr(structure.structure, "resnames"):
+            structure.structure.universe.add_TopologyAttr("resnames")
 
-    if tolerance is None:
-        tolerance = 2.0
+    # Tolerance is twice the radius of the nanoparticle atom
+    if atom_radius is None:
+        atom_radius = 1.0
+    tolerance = 2 * atom_radius
 
     with open(PACKMOL_INP, "w") as out:
         out.write("# autogenerated packmol input\n\n")
 
+        # Output file name
+        out.write("output {}\n\n".format(PACKMOL_OUT))
+
+        # Tolerance
         out.write("tolerance {}\n\n".format(tolerance))
+
+        # Inputs filetype
         out.write("filetype pdb\n\n")
 
-        for i, structure in enumerate(structures):
-            out.write(structure.to_packmol_inp(i))
-            structure.save_structure(i)
+        # Supramolecular cage
+        out.write(smc.to_packmol_inp(0))
+        smc.save_structure(0)
 
-        out.write("output {}\n\n".format(PACKMOL_OUT))
+        # Nanoparticle atom
+        out.write(np_atom.to_packmol_inp(1))
+        np_atom.save_structure(1)
 
 
 def run_packmol():
@@ -133,7 +240,7 @@ def run_packmol():
 
 def load_packmol_output():
     """Parse the output of Packmol"""
-    return mda.Universe(PACKMOL_OUT, transfer_to_memory=True)
+    return MDAnalysis.Universe(PACKMOL_OUT, transfer_to_memory=True)
 
 
 def clean_tempfiles(structures):
@@ -239,15 +346,20 @@ def reassign_topology(structures, new):
     return new
 
 
-def packmol(structures, tolerance=None):
-    """ "Take molecules and settings and create a larger system
+def packmol(
+    smc: PackmolStructure, np_atom: PackmolStructure, atom_radius: float = None
+):
+    """Take molecules and settings and create a larger system
 
     Parameters
     ----------
-    structures : list
-      list of PackmolStruture objects
-    tolerance : float, optional
-      Packmol tolerance, defaults to 2.0
+    smc : PackmolStruture
+      Supramolecular cage
+    np_atom : PackmolStructure
+      Nanoparticle atom
+    atom_radius : float, optional
+      Half of Packmol tolerance, ie., minimum distance between nanoparticle
+      atoms, defaults to 1.0
 
     Returns
     -------
@@ -255,7 +367,7 @@ def packmol(structures, tolerance=None):
       Universe object of the system created by Packmol
     """
     try:
-        make_packmol_input(structures, tolerance=tolerance)
+        make_packmol_input(smc, np_atom, atom_radius=atom_radius)
 
         run_packmol()
     except PackmolError:
@@ -265,6 +377,6 @@ def packmol(structures, tolerance=None):
         new = load_packmol_output()
         reassign_topology(structures, new)
     # finally:
-        # clean_tempfiles(structures)
+    # clean_tempfiles(structures)
 
-    return new
+    return None
