@@ -6,7 +6,8 @@ packmol.*
 # Debug
 run.py
 output.*
-*pdb
+*.cif
+*.pdb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
