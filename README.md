@@ -19,7 +19,8 @@ A python wrapper for packmol.
 ## Installation
 
 ```bash
-pip install .
+git clone https://github.com/jvsguerra/pypackmol.git
+pip install pypackmol
 ```
 
 ## Usage
