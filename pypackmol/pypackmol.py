@@ -14,7 +14,7 @@ import MDAnalysis
 import numpy
 import pyKVFinder
 
-__all__ = ["packmol", "PackmolStructure"]
+__all__ = ["packmol", "PackmolStructure", "CavityDetector", "AtomPacker"]
 
 PACKMOL_INP = "packmol.inp"  # name of .inp file given to packmol
 PACKMOL_STRUCTURE_FILES = "{}.pdb"
@@ -86,92 +86,6 @@ class PackmolStructure(object):
         self.structure.residues.resnames = old_resnames
 
 
-class CavityDetector(object):
-    def __init__(
-        self,
-        smc: PackmolStructure,
-        vdw: Optional[Union[str, pathlib.Path, Dict[str, Dict[str, float]]]] = None,
-        verbose: bool = False,
-    ):
-        self.verbose = verbose
-        self.vdw = self._load_vdw(vdw)
-        self.atomic = self._get_atomic(smc)
-
-    def _load_vdw(self, vdw):
-        # Get van der Waals radii dictionary
-        if self.verbose:
-            print("> Loading atomic dictionary file")
-
-        if vdw is None:
-            self.vdw = pyKVFinder.read_vdw()
-        elif type(vdw) in [str, pathlib.Path]:
-            self.vdw = pyKVFinder.read_vdw(vdw)
-        elif type(self.vdw) in [dict]:
-            self.vdw = vdw
-        else:
-            raise TypeError(
-                "`vdw` must be a string or a pathlib.Path of a van der Waals radii from .dat file."
-            )
-
-    def _get_atomic(self, smc):
-        if self.verbose:
-            print("> Getting atomic coordinates")
-
-        # Get radius of atoms
-        radius = []
-        for resname, atom, atom_symbol in zip(
-            smc.structure.atoms.resnames,
-            smc.structure.atoms.names,
-            smc.structure.atoms.types,
-        ):
-            if resname in self.vdw.keys() and atom in self.vdw[resname].keys():
-                radius.append(self.vdw[resname][atom])
-            else:
-                radius.append(self.vdw["GEN"][atom_symbol.upper()])
-        radius = numpy.array(radius)
-
-        # Get atomic coordinates
-        atomic = numpy.c_[
-            smc.structure.atoms.resnums,
-            smc.structure.atoms.chainIDs
-            if "chainIDs" in smc.structure.atoms._SETATTR_WHITELIST
-            else numpy.full(smc.structure.atoms.resnums.shape, ""),
-            smc.structure.atoms.resnames,
-            smc.structure.atoms.names,
-            smc.structure.atoms.positions,
-            radius,
-        ]  # shape (n_atoms, 7)
-
-        return atomic
-
-    def detect(
-        self,
-        step: float = 0.6,
-        probe_in: float = 1.4,
-        probe_out: float = 4.0,
-        removal_distance: float = 2.4,
-        volume_cutoff: float = 5.0,
-    ):
-        if self.verbose:
-            print("> Detecting cavities")
-
-        # Calculate vertices from grid
-        vertices = pyKVFinder.get_vertices(self.atomic, probe_out, step)
-
-        # Detect cavity
-        ncav, cavities = pyKVFinder.detect(
-            self.atomic,
-            vertices,
-            step,
-            probe_in,
-            probe_out,
-            removal_distance,
-            volume_cutoff,
-        )
-
-        return ncav, cavities, boundaries
-
-
 def make_packmol_input(
     smc: PackmolStructure, np_atom: PackmolStructure, atom_radius: float = None
 ):
@@ -216,6 +130,9 @@ def make_packmol_input(
         # Nanoparticle atom
         out.write(np_atom.to_packmol_inp(1))
         np_atom.save_structure(1)
+
+        # Boundary
+        # TODO: include boundary to inp file
 
 
 def run_packmol():
@@ -375,8 +292,130 @@ def packmol(
         new = None
     else:
         new = load_packmol_output()
-        reassign_topology(structures, new)
+        reassign_topology([smc, np_atom], new)
     # finally:
     # clean_tempfiles(structures)
 
     return None
+
+
+class CavityDetector(object):
+    def __init__(
+        self,
+        smc: PackmolStructure,
+        vdw: Optional[Union[str, pathlib.Path, Dict[str, Dict[str, float]]]] = None,
+        verbose: bool = False,
+    ):
+        self.verbose = verbose
+        self.vdw = self._load_vdw(vdw)
+        self.atomic = self._get_atomic(smc)
+
+    def _load_vdw(
+        self, vdw: Optional[Union[str, pathlib.Path, Dict[str, Dict[str, float]]]]
+    ):
+        # Get van der Waals radii dictionary
+        if self.verbose:
+            print("> Loading atomic dictionary file")
+
+        if vdw is None:
+            return pyKVFinder.read_vdw()
+        elif type(vdw) in [str, pathlib.Path]:
+            return pyKVFinder.read_vdw(vdw)
+        elif type(self.vdw) in [dict]:
+            return vdw
+        else:
+            raise TypeError(
+                "`vdw` must be a string or a pathlib.Path of a van der Waals radii from .dat file."
+            )
+
+    def _get_atomic(self, smc: MDAnalysis.Universe):
+        if self.verbose:
+            print("> Getting atomic coordinates")
+
+        # Get radius of atoms
+        radius = []
+        for resname, atom, atom_symbol in zip(
+            smc.atoms.resnames,
+            smc.atoms.names,
+            smc.atoms.types,
+        ):
+            if resname in self.vdw.keys():
+                if atom in self.vdw[resname].keys():
+                    radius.append(self.vdw[resname][atom])
+            else:
+                radius.append(self.vdw["GEN"][atom_symbol.upper()])
+        radius = numpy.array(radius)
+
+        # Get atomic coordinates
+        atomic = numpy.c_[
+            smc.atoms.resnums,
+            smc.atoms.chainIDs
+            if "chainIDs" in smc.atoms._SETATTR_WHITELIST
+            else numpy.full(smc.atoms.resnums.shape, ""),
+            smc.atoms.resnames,
+            smc.atoms.names,
+            smc.atoms.positions,
+            radius,
+        ]  # shape (n_atoms, 7)
+
+        return atomic
+
+    def detect(
+        self,
+        step: float = 0.6,
+        probe_in: float = 1.4,
+        probe_out: float = 4.0,
+        removal_distance: float = 2.4,
+        volume_cutoff: float = 5.0,
+    ):
+        if self.verbose:
+            print("> Detecting cavities")
+
+        # Calculate vertices from grid
+        vertices = pyKVFinder.get_vertices(self.atomic, probe_out, step)
+
+        # Detect cavity
+        ncav, cavities = pyKVFinder.detect(
+            self.atomic,
+            vertices,
+            step,
+            probe_in,
+            probe_out,
+            removal_distance,
+            volume_cutoff,
+        )
+
+        # Detect boundaries
+        _, tmp = pyKVFinder.detect(
+            self.atomic,
+            vertices,
+            step,
+            probe_in,
+            probe_out,
+            removal_distance - 1.0,
+            volume_cutoff,
+        )
+        nboundaries, boundaries, abounderies = pyKVFinder.openings(cavities, step=step)
+        pyKVFinder.export(
+            "boundaries.pdb",
+            boundaries,
+            None,
+            vertices,
+            step=0.25,
+        )
+
+        return ncav, cavities, boundaries
+
+
+class AtomPacker(object):
+    def __init__(self):
+        pass
+
+    def add_boundary(self):
+        pass
+
+    def detect_cavity(self):
+        pass
+
+    def packing(self):
+        pass

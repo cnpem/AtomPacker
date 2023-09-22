@@ -7,4 +7,4 @@ __email__ = 'jvsguerra@gmail.com'
 __version__ = '0.1.0'
 
 from . import pypackmol
-from .pypackmol import packmol, PackmolStructure
+from .pypackmol import packmol, PackmolStructure, CavityDetector
