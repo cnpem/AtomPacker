@@ -1,6 +1,6 @@
-# pypackmol
+# AtomPacker
 
-A python wrapper for packmol.
+A python package for packing atoms into a supramolecular cage
 
 ## System requirements
 
@@ -24,8 +24,8 @@ A python wrapper for packmol.
 ## Installation
 
 ```bash
-git clone https://github.com/jvsguerra/pypackmol.git
-pip install -e pypackmol
+git clone https://github.com/jvsguerra/AtomPacker.git
+pip install -e AtomPacker
 ```
 
 ## Usage
@@ -33,7 +33,7 @@ pip install -e pypackmol
 
 ## Citing
 
-If you find `pypackmol` useful for you, please cite the following sources:
+If you find `AtomPacker` useful for you, please cite the following sources:
 
 - L Martinez, R Andrade, E G Birgin, J M Martinez, "Packmol: A package for building initial configurations for molecular dynamics simulations". Journal of Computational Chemistry, 30, 2157-2164, 2009.
 

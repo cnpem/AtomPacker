@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""Tests for `pypackmol` workflow."""
+"""Tests for `AtomPacker` workflow."""
 import os
 import pytest
-from pypackmol import *
+from AtomPacker import *
 import MDAnalysis
 
 # HERE = os.path.abspath(os.path.dirname(__file__))

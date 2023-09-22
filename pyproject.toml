@@ -3,8 +3,8 @@ requires = ["setuptools>=62.0", "wheel>=0.37.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pypackmol"
-description = "A python wrapper for packmol"
+name = "AtomPacker"
+description = "A python package for packing atoms into a supramolecular cage"
 authors = [
     { name = "João Victor da Silva Guerra", email = "jvsguerra@gmail.com" },
 ]
@@ -18,8 +18,9 @@ keywords = ["computational chemistry", "atom packing", "sphere packing"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Mathematics",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -34,11 +35,11 @@ dynamic = ["version"]
 dev = ["pytest==7.4.2", "pytest-cov==4.1.0", "black==23.9.1", "flake8==6.1.0"]
 
 [project.urls]
-homepage = "https://github.com/jvsguerra/pypackmol"
-issues = "https://github.com/jvsguerra/pypackmol/issues"
+homepage = "https://github.com/jvsguerra/AtomPacker"
+issues = "https://github.com/jvsguerra/AtomPacker/issues"
 
 [tool.setuptools]
-packages = ["pypackmol"]
+packages = ["AtomPacker"]
 
 [tool.setuptools.dynamic]
-version = { attr = "pypackmol.__version__" }
+version = { attr = "AtomPacker.__version__" }
