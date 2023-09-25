@@ -28,7 +28,12 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3 :: Only",
 ]
-dependencies = ["MDAnalysis==2.6.1", "numpy==1.26.0", "pyKVFinder==0.6.6"]
+dependencies = [
+    "MDAnalysis==2.6.1",
+    "numpy==1.26.0",
+    "pyKVFinder==0.6.6",
+    "plotly==5.17.0",
+]
 dynamic = ["version"]
 
 [project.optional-dependencies]

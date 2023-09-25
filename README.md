@@ -1,6 +1,6 @@
 # AtomPacker
 
-A python package for packing atoms into a supramolecular cage
+A python package for packing nanoparticle atoms into a supramolecular cage.
 
 ## System requirements
 
