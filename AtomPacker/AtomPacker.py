@@ -1,8 +1,8 @@
 import os
+import pathlib
 import subprocess
-import sys
 import warnings
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 import MDAnalysis
 import numpy
@@ -16,11 +16,11 @@ class PackmolStructure(object):
 
     Parameters
     ----------
-    structure : MDAnalysis.AtomGroup
+    structure : str
       a single template molecule for Packmol to use
     number : int
       quantity of this molecule to add to new system
-    instructions : list of strings
+    instructions : List[str]
       list of instructions to Packmol for this molecule
       eg 'inside box 0. 0. 0. 40. 40. 40.'
       each item in the list should be a single line instruction
@@ -28,11 +28,11 @@ class PackmolStructure(object):
 
     def __init__(
         self,
-        structure: MDAnalysis.AtomGroup,
+        structure: Union[str, pathlib.Path],
         number: int = 1,
         instructions: List[str] = None,
     ):
-        self.structure = structure
+        self.structure = MDAnalysis.Universe(structure)
         self.number = number
         self.instructions = instructions
 
@@ -113,117 +113,6 @@ class AtomPacker(object):
 
         # Create base directory
         os.makedirs(self.basedir, exist_ok=True)
-
-    def detect_cavity(
-        self,
-        step: float = 0.6,
-        probe_in: float = 1.4,
-        probe_out: float = 4.0,
-        removal_distance: float = 2.4,
-        volume_cutoff: float = 5.0,
-        vdw: Optional[Union[str, Dict[str, Dict[str, float]]]] = None,
-        preview: bool = False,
-    ):
-        """Detect cavity within supramolecular cage
-
-        Parameters
-        ----------
-        step : float
-            Grid spacing (A) (default is 0.6)
-        probe_in : float
-            radius of the probe for the inner surface (default is 1.4)
-        probe_out : float
-            radius of the probe for the outer surface (default is 4.0)
-        removal_distance : float
-            distance to remove atoms from the cage (default is 2.4)
-        volume_cutoff : float
-            minimum volume for a cavity (default is 5.0)
-        vdw : str, pathlib.Path, or dict
-            path to vdw radii file or a dictionary with vdw radii (default is None)
-        """
-        # Save cavity detection parameters
-        self.parameters = {
-            "step": step,
-            "probe_in": probe_in,
-            "probe_out": probe_out,
-            "removal_distance": removal_distance,
-            "volume_cutoff": volume_cutoff,
-        }
-
-        # Get van der Waals radii dictionary
-        if vdw is None:
-            vdw = pyKVFinder.read_vdw()
-        elif type(vdw) in [str]:
-            vdw = pyKVFinder.read_vdw(vdw)
-        elif type(vdw) in [dict]:
-            vdw = vdw
-        else:
-            raise TypeError(
-                "`vdw` must be a string of a van der Waals radii from .dat file."
-            )
-
-        # Get atomic information
-        radius = []
-        for resname, atom, atom_symbol in zip(
-            self.smc.structure.atoms.resnames,
-            self.smc.structure.atoms.names,
-            self.smc.structure.atoms.types,
-        ):
-            if resname in vdw.keys():
-                if atom in vdw[resname].keys():
-                    radius.append(vdw[resname][atom])
-            else:
-                radius.append(vdw["GEN"][atom_symbol.upper()])
-        radius = numpy.array(radius)
-
-        # Get atomic coordinates
-        self.parameters["atomic"] = numpy.c_[
-            self.smc.structure.atoms.resnums,
-            self.smc.structure.atoms.chainIDs
-            if "chainIDs" in self.smc.structure.atoms._SETATTR_WHITELIST
-            else numpy.full(self.smc.structure.atoms.resnums.shape, ""),
-            self.smc.structure.atoms.resnames,
-            self.smc.structure.atoms.names,
-            self.smc.structure.atoms.positions,
-            radius,
-        ]  # shape (n_atoms, 7)
-
-        # Calculate vertices from grid
-        self.parameters["vertices"] = pyKVFinder.get_vertices(
-            self.parameters["atomic"], self.parameters["probe_out"], self.parameters["step"]
-        )
-
-        # Detect cavity
-        self.ncav, self.cavity = pyKVFinder.detect(
-            self.parameters["atomic"],
-            self.parameters["vertices"],
-            self.parameters["step"],
-            self.parameters["probe_in"],
-            self.parameters["probe_out"],
-            self.parameters["removal_distance"],
-            self.parameters["volume_cutoff"],
-        )
-
-        # Preview cavity
-        if preview:
-            self.kvpreview()
-
-    def kvpreview(self, **kwargs) -> None:
-        """Preview cavity within supramolecular cage"""
-        if self.cavity is None:
-            raise ValueError("Cavity not detected. Run `detect_cavity` first.")
-        else:
-            if self.cavity is not None:
-                from plotly.express import scatter_3d
-
-                x, y, z = numpy.nonzero(self.cavity > 1)
-                fig = scatter_3d(x=x, y=y, z=z, **kwargs)
-                fig.update_layout(
-                    scene_xaxis_showticklabels=False,
-                    scene_yaxis_showticklabels=False,
-                    scene_zaxis_showticklabels=False,
-                )
-                fig.show()
 
     def add_boundary(self) -> None:
         """Add boundary to the system"""
@@ -382,14 +271,88 @@ class AtomPacker(object):
             impropers = [tuple(val) for val in impropers]
             self.packed.add_TopologyAttr("impropers", values=impropers)
 
-    def _filter(self):
-        # Get nanoparticle atoms
-        atoms = self.packed.select_atoms("chainID A").positions
+    def detect_cavity(
+        self,
+        parameters: Dict[str, Any],
+        vdw: Optional[Union[str, Dict[str, Dict[str, float]]]] = None,
+    ):
+        """Detect cavity within supramolecular cage
 
-        # Calculate the grid indices for each atom
-        indexes = ((atoms - self.parameters['vertices'][0]) / self.parameters['step']).astype(
-            int
+        Parameters
+        ----------
+        parameters : dict
+            cavity detection parameters
+        vdw : str, pathlib.Path, or dict
+            path to vdw radii file or a dictionary with vdw radii (default is None)
+        """
+        # Get van der Waals radii dictionary
+        if vdw is None:
+            vdw = pyKVFinder.read_vdw()
+        elif type(vdw) in [str]:
+            vdw = pyKVFinder.read_vdw(vdw)
+        elif type(vdw) in [dict]:
+            vdw = vdw
+        else:
+            raise TypeError(
+                "`vdw` must be a string of a van der Waals radii from .dat file."
+            )
+
+        # Get atomic information
+        self.smc.strcture.atoms = self.packed.select_atoms("chainID X")
+        radius = []
+        for resname, atom, atom_symbol in zip(
+            self.smc.structure.atoms.resnames,
+            self.smc.structure.atoms.names,
+            self.smc.structure.atoms.types,
+        ):
+            if resname in vdw.keys():
+                if atom in vdw[resname].keys():
+                    radius.append(vdw[resname][atom])
+            else:
+                radius.append(vdw["GEN"][atom_symbol.upper()])
+        radius = numpy.array(radius)
+
+        # Get atomic coordinates
+        atomic = numpy.c_[
+            self.smc.structure.atoms.resnums,
+            self.smc.structure.atoms.chainIDs
+            if "chainIDs" in self.smc.structure.atoms._SETATTR_WHITELIST
+            else numpy.full(self.smc.structure.atoms.resnums.shape, ""),
+            self.smc.structure.atoms.resnames,
+            self.smc.structure.atoms.names,
+            self.smc.structure.atoms.positions,
+            radius,
+        ]  # shape (n_atoms, 7)
+
+        # Calculate vertices from grid
+        vertices = pyKVFinder.get_vertices(
+            atomic,
+            parameters["probe_out"],
+            parameters["step"],
         )
+
+        # Detect cavity
+        self.ncav, self.cavity = pyKVFinder.detect(
+            atomic,
+            vertices,
+            parameters["step"],
+            parameters["probe_in"],
+            parameters["probe_out"],
+            parameters["removal_distance"],
+            parameters["volume_cutoff"],
+        )
+
+    def filter_inside_cavity(self):
+        if self.cavity is None:
+            raise ValueError("Cavity is not detected. Run `detect_cavity` first.")
+        else:
+            # Get nanoparticle atoms
+            atoms = self.packed.select_atoms("chainID A").positions
+
+            # Calculate the grid indices for each atom
+            indexes = (
+                (atoms - self.parameters["vertices"][0]) / self.parameters["step"]
+            ).astype(int)
 
     def packing(
         self,
@@ -402,35 +365,41 @@ class AtomPacker(object):
         # Load output.pdb file and reassign topology
         self.packed = self._load_packmol_output()
         self._reassign_topology()
+        # Detect cavity
+
         # Filter nanoparticle atoms inside cavity
-        self._filter()
+
         # Write packed structure to file
         self.packed.atoms.write(os.path.join(self.basedir, "packed.pdb"))
 
 
 if __name__ == "__main__":
-    SMC = os.path.join("data", "C1.pdb")
-    AU = os.path.join("data", "Au.pdb")
+    SMC = os.path.join("../", "data", "C1.pdb")
+    AU = os.path.join("../", "data", "Au.pdb")
+
+    detection_parameters = {
+        "step": 0.25,
+        "probe_in": 1.4,
+        "probe_out": 10.0,
+        "removal_distance": 1.0,
+        "volume_cutoff": 5.0,
+    }
 
     # Load Universe of Supramolecular cage (smc)
     smc = PackmolStructure(
-        MDAnalysis.Universe(SMC),
+        SMC,
         number=1,
         instructions=["center", "fixed 0. 0. 0. 0. 0. 0."],
     )
     # Load Universe of Nanoparticle atom (np_atom)
     np_atom = PackmolStructure(
-        MDAnalysis.Universe(AU), number=40, instructions=["inside sphere 0. 0. 0. 7."]
+        AU, number=40, instructions=["inside sphere 0. 0. 0. 7."]
     )
 
     # Prepare AtomPacker object
     ap = AtomPacker(smc, np_atom, np_atom_radius=1.36, basedir="tests")
 
-    # Detect cavity
-    ap.detect_cavity(0.25, 1.4, 10.0, 1.0, 5.0, None, True)
-
-    # Add boundary
-    # ap.add_boundary()
-
     # Run Packmol
     ap.packing()
+
+    # Filter cavity
