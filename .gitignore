@@ -8,6 +8,8 @@ run.py
 output.*
 *.cif
 *.pdb
+*.csv
+*.err
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

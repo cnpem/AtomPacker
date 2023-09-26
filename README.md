@@ -1,5 +1,8 @@
 # AtomPacker
 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/jvsguerra/AtomPacker)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/jvsguerra/AtomPacker/integration-testing.yml?label=testing)
+
 A python package for packing nanoparticle atoms into a supramolecular cage.
 
 ## System requirements
@@ -65,7 +68,7 @@ ap.packing(replicates=10)
 print(ap.summary)
 ```
 
-### [WIP] 2. Packing nanoparticle atoms with packmol inside a boundary and filter atoms inside the cavity;
+### 2. Packing nanoparticle atoms with packmol inside a boundary and filter atoms inside the cavity;
 
 ```python
 from AtomPacker import *

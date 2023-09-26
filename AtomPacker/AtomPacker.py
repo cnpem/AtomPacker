@@ -413,9 +413,7 @@ class AtomPacker(object):
             if any(hasattr(pms.structure, attr) for pms in structures):
                 self.packed[replicate].add_TopologyAttr(attr)
 
-                if not all(
-                    hasattr(pms.structure, attr) for pms in structures
-                ):
+                if not all(hasattr(pms.structure, attr) for pms in structures):
                     warnings.warn("added attribute which not all templates had")
 
         while index < len(self.packed[replicate].atoms):
@@ -537,13 +535,13 @@ class AtomPacker(object):
             self.packed[replicate] = self._load_packmol_output()
             self._reassign_topology(replicate)
 
-            # Update supramolecular cage positions
-            self._update_smc()
+        # Update supramolecular cage positions
+        self._update_smc()
 
-            # Detect cavity
-            if self.cavity is None:
-                self._detect_cavity()
+        # Detect cavity
+        self._detect_cavity()
 
+        for replicate in range(replicates):
             # Filter atoms inside cavity
             self._filter_atoms_inside_cavity(replicate)
 
@@ -552,7 +550,7 @@ class AtomPacker(object):
 
         # Pandas DataFrame with atoms packed in each replicate
         self.summary = self._summary(replicates)
-        self.summary.to_csv(os.path.join(self.basedir,"PackedAtoms.csv"))
+        self.summary.to_csv(os.path.join(self.basedir, "PackedAtoms.csv"))
 
     def _summary(self, replicates: int):
         # Packed atoms
@@ -574,8 +572,18 @@ class AtomPacker(object):
             # Get clashing atoms
             distances = squareform(distances)
             numpy.fill_diagonal(distances, numpy.inf)
-            clashing_atoms = numpy.unique(numpy.where(distances < self.np_atom_radius * 2)[0]).shape[0]
+            clashing_atoms = numpy.unique(
+                numpy.where(distances < (self.np_atom_radius * 2))[0]
+            ).shape[0]
             nclashing_atoms.append(clashing_atoms)
+
+            # Save clashing pairs to file with distance
+            clashing_pairs = numpy.argwhere(distances < (self.np_atom_radius * 2))
+            clashing_pairs = clashing_pairs[clashing_pairs[:, 0] < clashing_pairs[:, 1]]
+            if clashing_pairs.shape[0] > 0:
+                with open(os.path.join(self.basedir, f"clashing_pairs{replicate}.err"), 'w') as f:
+                    for pair, distance in zip(clashing_pairs, distances[clashing_pairs[:, 0], clashing_pairs[:, 1]]):
+                        f.write(f"{pair[0]} {pair[1]} {distance}\n")
 
         return pandas.DataFrame(
             [natoms, nclash, nclashing_atoms],
