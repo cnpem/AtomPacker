@@ -21,7 +21,7 @@ def np_atom_params(request):
 @pytest.mark.filterwarnings("ignore::UserWarning")
 def test_pipeline_1(np_atom_params):
     # Define a basename for the temporary directory
-    basename = np_atom_params["np_atom_file"].split('/')[-1].replace(".pdb", "")
+    basename = np_atom_params["np_atom_file"].split("/")[-1].replace(".pdb", "")
 
     # Extract parameters from the fixture
     np_atom_file = np_atom_params["np_atom_file"]
@@ -64,23 +64,13 @@ def test_pipeline_1(np_atom_params):
     ap.packing(replicates=REPLICATES)
 
     # Perform assertions to check if files were created for the specified np_atom and np_atom_radius
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-1", basename, "PackedAtoms.csv")
-    )
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-1", basename, "cavity.pdb")
-    )
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-1", basename, "packmol.inp")
-    )
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-1", basename, "packmol.stdout")
-    )
+    assert os.path.exists(os.path.join(HERE, "pipeline-1", basename, "PackedAtoms.csv"))
+    assert os.path.exists(os.path.join(HERE, "pipeline-1", basename, "cavity.pdb"))
+    assert os.path.exists(os.path.join(HERE, "pipeline-1", basename, "packmol.inp"))
+    assert os.path.exists(os.path.join(HERE, "pipeline-1", basename, "packmol.stdout"))
     for replicate in range(REPLICATES):
         assert os.path.exists(
-            os.path.join(
-                HERE, "pipeline-1", basename, f"packed{replicate}.pdb"
-            )
+            os.path.join(HERE, "pipeline-1", basename, f"packed{replicate}.pdb")
         )
 
 
