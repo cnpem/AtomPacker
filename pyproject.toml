@@ -32,7 +32,8 @@ dependencies = [
     "MDAnalysis==2.6.1",
     "numpy==1.26.0",
     "pyKVFinder==0.6.7",
-    "pandas==2.1.1"
+    "pandas==2.1.1",
+    "scipy==1.11.2",
 ]
 dynamic = ["version"]
 

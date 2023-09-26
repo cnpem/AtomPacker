@@ -7,8 +7,9 @@ from typing import Dict, List, Optional, Union
 
 import MDAnalysis
 import numpy
-import pyKVFinder
 import pandas
+import pyKVFinder
+from scipy.spatial.distance import pdist, squareform
 
 __all__ = ["PackmolStructure", "CavityDetector", "AtomPacker"]
 
@@ -175,7 +176,7 @@ class CavityDetector(object):
 
         return vertices
 
-    def _detect_cavity(self, preview: bool = False) -> numpy.ndarray:
+    def _detect_cavity(self) -> numpy.ndarray:
         if self.verbose:
             print("> Detecting cavities")
 
@@ -196,10 +197,6 @@ class CavityDetector(object):
         # Print number of cavities
         if self.verbose:
             print(f"[==> Number of cavities: {ncav}")
-
-        # Preview cavity
-        if preview:
-            pass
 
         return cavities
 
@@ -301,14 +298,19 @@ class AtomPacker(object):
             number=1,
             instructions=[
                 "center",
-                f"radius {self.cavity_detector.step}",
+                f"radius {self.cavity_detector.step / 2}",
                 "fixed 0. 0. 0. 0. 0. 0.",
             ],
         )
 
     def _make_packmol_input(self):
+        if self.boundary is None:
+            structures = [self.smc, self.np_atom]
+        else:
+            structures = [self.smc, self.np_atom, self.boundary]
+
         # Check if all structures are suitable, fix them if needed
-        for structure in [self.smc, self.np_atom]:
+        for structure in structures:
             if not hasattr(structure.structure, "resnames"):
                 structure.structure.universe.add_TopologyAttr("resnames")
 
@@ -401,13 +403,18 @@ class AtomPacker(object):
         dihedrals = []
         impropers = []
 
+        if self.boundary is None:
+            structures = [self.smc, self.np_atom]
+        else:
+            structures = [self.smc, self.np_atom, self.boundary]
+
         # add required attributes
         for attr in ["types", "names", "charges", "masses"]:
-            if any(hasattr(pms.structure, attr) for pms in [self.smc, self.np_atom]):
+            if any(hasattr(pms.structure, attr) for pms in structures):
                 self.packed[replicate].add_TopologyAttr(attr)
 
                 if not all(
-                    hasattr(pms.structure, attr) for pms in [self.smc, self.np_atom]
+                    hasattr(pms.structure, attr) for pms in structures
                 ):
                     warnings.warn("added attribute which not all templates had")
 
@@ -415,7 +422,7 @@ class AtomPacker(object):
             # first atom we haven't dealt with yet
             start = self.packed[replicate].atoms[index]
             # the resname was altered to give a hint to what template it was from
-            template = [self.smc, self.np_atom][int(start.resname[1:])].structure
+            template = structures[int(start.resname[1:])].structure
             # grab atomgroup which matches template
             to_change = self.packed[replicate].atoms[
                 index : index + len(template.atoms)
@@ -548,12 +555,30 @@ class AtomPacker(object):
         self.summary.to_csv(os.path.join(self.basedir,"PackedAtoms.csv"))
 
     def _summary(self, replicates: int):
+        # Packed atoms
         natoms = []
         for replicate in range(replicates):
             natoms.append(len(self.packed[replicate].select_atoms("chainID A")))
 
+        # Number of clashes and clashing atoms
+        nclash, nclashing_atoms = [], []
+        for replicate in range(replicates):
+            # Get positions
+            positions = self.packed[replicate].select_atoms("chainID A").atoms.positions
+
+            # Get clashes
+            distances = pdist(positions)
+            clashes = numpy.sum(distances < self.np_atom_radius * 2)
+            nclash.append(clashes)
+
+            # Get clashing atoms
+            distances = squareform(distances)
+            numpy.fill_diagonal(distances, numpy.inf)
+            clashing_atoms = numpy.unique(numpy.where(distances < self.np_atom_radius * 2)[0]).shape[0]
+            nclashing_atoms.append(clashing_atoms)
+
         return pandas.DataFrame(
-            natoms,
-            columns=["Packed atoms"],
-            index=[f"packed{replicate}.pdb" for replicate in range(replicates)],
-        )
+            [natoms, nclash, nclashing_atoms],
+            index=["Packed atoms", "Number of clashs", "Clashing atoms"],
+            columns=[f"packed{replicate}.pdb" for replicate in range(replicates)],
+        ).T

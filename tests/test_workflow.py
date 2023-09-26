@@ -21,7 +21,7 @@ smc = PackmolStructure(
     instructions=["center", "fixed 0. 0. 0. 0. 0. 0."],
 )
 np_atom = PackmolStructure(
-    MDAnalysis.Universe(AU_PDB), number=40, instructions=["inside sphere 0. 0. 0. 7."]
+    MDAnalysis.Universe(AU_PDB), number=40, instructions=["inside sphere 0. 0. 0. 6."]
 )
 
 # Cavity Detector

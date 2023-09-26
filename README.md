@@ -65,7 +65,7 @@ ap.packing(replicates=10)
 print(ap.summary)
 ```
 
-### 2. Packing nanoparticle atoms with packmol inside a boundary and filter atoms inside the cavity;
+### [WIP] 2. Packing nanoparticle atoms with packmol inside a boundary and filter atoms inside the cavity;
 
 ```python
 from AtomPacker import *
