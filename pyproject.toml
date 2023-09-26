@@ -31,8 +31,8 @@ classifiers = [
 dependencies = [
     "MDAnalysis==2.6.1",
     "numpy==1.26.0",
-    "pyKVFinder==0.6.6",
-    "plotly==5.17.0",
+    "pyKVFinder==0.6.7",
+    "pandas==2.1.1"
 ]
 dynamic = ["version"]
 

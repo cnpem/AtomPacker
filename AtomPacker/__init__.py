@@ -7,4 +7,4 @@ __email__ = 'jvsguerra@gmail.com'
 __version__ = '0.1.0'
 
 from . import AtomPacker
-from .AtomPacker import PackmolStructure, AtomPacker
+from .AtomPacker import PackmolStructure, CavityDetector, AtomPacker

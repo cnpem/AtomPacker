@@ -1,14 +1,16 @@
+import math
 import os
 import pathlib
 import subprocess
 import warnings
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union
 
 import MDAnalysis
 import numpy
 import pyKVFinder
+import pandas
 
-__all__ = ["PackmolStructure", "AtomPacker"]
+__all__ = ["PackmolStructure", "CavityDetector", "AtomPacker"]
 
 
 class PackmolStructure(object):
@@ -74,12 +76,175 @@ class PackmolStructure(object):
         self.structure.residues.resnames = old_resnames
 
 
+class CavityDetector(object):
+    """Detect cavity within supramolecular cage
+
+    Parameters
+    ----------
+    vdw : str, pathlib.Path, or dict
+        path to vdw radii file or a dictionary with vdw radii (default is None)
+    verbose : bool
+        print messages (default is False)
+    """
+
+    def __init__(
+        self,
+        step: float = 0.6,
+        probe_in: float = 1.4,
+        probe_out: float = 4.0,
+        removal_distance: float = 2.4,
+        volume_cutoff: float = 5.0,
+        vdw: Optional[Union[str, pathlib.Path, Dict[str, Dict[str, float]]]] = None,
+        verbose: bool = False,
+    ):
+        # Verbose mode
+        self.verbose = verbose
+
+        # Load van der Waals radii dictionary
+        self.vdw = self._load_vdw(vdw)
+
+        # Cavity detection parameters
+        self.step = step
+        self.probe_in = probe_in
+        self.probe_out = probe_out
+        self.removal_distance = removal_distance
+        self.volume_cutoff = volume_cutoff
+
+        # Atomic information
+        self.atomic = None
+
+        # Vertices
+        self.vertices = None
+
+    def _load_vdw(
+        self, vdw: Optional[Union[str, pathlib.Path, Dict[str, Dict[str, float]]]]
+    ):
+        # Get van der Waals radii dictionary
+        if self.verbose:
+            print("> Loading atomic dictionary file")
+
+        if vdw is None:
+            return pyKVFinder.read_vdw()
+        elif type(vdw) in [str, pathlib.Path]:
+            return pyKVFinder.read_vdw(vdw)
+        elif type(self.vdw) in [dict]:
+            return vdw
+        else:
+            raise TypeError(
+                "`vdw` must be a string or a pathlib.Path of a van der Waals radii from .dat file."
+            )
+
+    def _get_atomic(self, smc: MDAnalysis.Universe):
+        if self.verbose:
+            print("> Getting atomic coordinates")
+
+        # Get radius of atoms
+        radius = []
+        for resname, atom, atom_symbol in zip(
+            smc.atoms.resnames,
+            smc.atoms.names,
+            smc.atoms.types,
+        ):
+            if resname in self.vdw.keys():
+                if atom in self.vdw[resname].keys():
+                    radius.append(self.vdw[resname][atom])
+            else:
+                radius.append(self.vdw["GEN"][atom_symbol.upper()])
+        radius = numpy.array(radius)
+
+        # Get atomic coordinates
+        atomic = numpy.c_[
+            smc.atoms.resnums,
+            smc.atoms.chainIDs
+            if "chainIDs" in smc.atoms._SETATTR_WHITELIST
+            else numpy.full(smc.atoms.resnums.shape, ""),
+            smc.atoms.resnames,
+            smc.atoms.names,
+            smc.atoms.positions,
+            radius,
+        ]  # shape (n_atoms, 7)
+
+        return atomic
+
+    def _get_vertices(self):
+        if self.verbose:
+            print("> Getting vertices")
+
+        # Calculate vertices from grid
+        vertices = pyKVFinder.get_vertices(self.atomic, self.probe_out, self.step)
+
+        return vertices
+
+    def _detect_cavity(self, preview: bool = False) -> numpy.ndarray:
+        if self.verbose:
+            print("> Detecting cavities")
+
+        # Calculate vertices from grid
+        self.vertices = self._get_vertices()
+
+        # Detect cavity
+        ncav, cavities = pyKVFinder.detect(
+            self.atomic,
+            self.vertices,
+            self.step,
+            self.probe_in,
+            self.probe_out,
+            self.removal_distance,
+            self.volume_cutoff,
+        )
+
+        # Print number of cavities
+        if self.verbose:
+            print(f"[==> Number of cavities: {ncav}")
+
+        # Preview cavity
+        if preview:
+            pass
+
+        return cavities
+
+    def _detect_boundary(self, np_atom_radius: float) -> numpy.ndarray:
+        if self.verbose:
+            print("> Detecting boundaries")
+
+        # Get vertices
+        self.vertices = pyKVFinder.get_vertices(self.atomic, self.probe_out, self.step)
+
+        # Calculate new removal distance
+        rd = max(
+            0.0,
+            math.floor((self.removal_distance - np_atom_radius) / self.step)
+            * self.step,
+        )
+
+        # Detect cavities with a "higher" boundary
+        _, cavities = pyKVFinder.detect(
+            self.atomic,
+            self.vertices,
+            self.step,
+            self.probe_in,
+            self.probe_out,
+            rd,
+            self.volume_cutoff,
+        )
+
+        # Detect boundaries
+        nboundaries, boundaries, _ = pyKVFinder.openings(cavities, step=self.step)
+
+        # Print number of boundaries
+        if self.verbose:
+            print(f"[==> Number of boundaries: {nboundaries}")
+
+        return boundaries
+
+
 class AtomPacker(object):
     def __init__(
         self,
         smc: PackmolStructure,
         np_atom: PackmolStructure,
-        np_atom_radius: Optional[float] = None,
+        np_atom_radius: float,
+        cavity_detector: CavityDetector,
         basedir: Optional[str] = None,
     ):
         # Load Universe of Supramolecular cage
@@ -89,21 +254,22 @@ class AtomPacker(object):
         self.np_atom = np_atom
 
         # Nanoparticle atom radius (Angstroms)
-        if np_atom_radius is None:
-            self.np_atom_radius = 1.0
-        else:
-            self.np_atom_radius = np_atom_radius
+        self.np_atom_radius = np_atom_radius
+
+        # CavityDetector object
+        self.cavity_detector = cavity_detector
 
         # Cavity
         self.cavity = None
-        self.ncav = None
-        self.parameters = None
 
         # Boundary
         self.boundary = None
 
         # AtomPacked structure
         self.packed = None
+
+        # AtomPacking summary
+        self.summary = None
 
         # Set basedir for output files
         if basedir is None:
@@ -116,14 +282,29 @@ class AtomPacker(object):
 
     def add_boundary(self) -> None:
         """Add boundary to the system"""
-        # # Calculate vertices from grid
-        # vertices = pyKVFinder.get_vertices(atomic, probe_out, step)
+        self.cavity_detector.atomic = self.cavity_detector._get_atomic(
+            self.smc.structure
+        )
 
-        # # Detect boundaries
-        # _, self.boundary, _ = pyKVFinder.openings(
-        #     self.cavity, step=self.parameters["step"]
-        # )
-        pass
+        # Export boundary
+        pyKVFinder.export(
+            os.path.join(self.basedir, "boundary.pdb"),
+            self.cavity_detector._detect_boundary(self.np_atom_radius),
+            None,
+            self.cavity_detector.vertices,
+            self.cavity_detector.step,
+        )
+
+        # Load boundary as a PackmolStructure
+        self.boundary = PackmolStructure(
+            os.path.join(self.basedir, "boundary.pdb"),
+            number=1,
+            instructions=[
+                "center",
+                f"radius {self.cavity_detector.step}",
+                "fixed 0. 0. 0. 0. 0. 0.",
+            ],
+        )
 
     def _make_packmol_input(self):
         # Check if all structures are suitable, fix them if needed
@@ -146,6 +327,9 @@ class AtomPacker(object):
             # Inputs filetype
             out.write("filetype pdb\n\n")
 
+            # Define a random runtime seed
+            out.write("seed -1\n\n")
+
             # Supramolecular cage
             out.write(self.smc.to_packmol_inp(0))
             self.smc.save_structure(0)
@@ -155,7 +339,9 @@ class AtomPacker(object):
             self.np_atom.save_structure(1)
 
             # Boundary
-            # TODO: include boundary to inp file
+            if self.boundary is not None:
+                out.write(self.boundary.to_packmol_inp(2))
+                self.boundary.save_structure(2)
 
     def _run_packmol(self):
         """Run and check that Packmol worked correctly"""
@@ -173,7 +359,7 @@ class AtomPacker(object):
                 " and stderr: {}".format(e.returncode, e.stderr)
             )
         else:
-            with open("packmol.stdout", "w") as out:
+            with open(os.path.join(self.basedir, "packmol.stdout"), "w") as out:
                 out.write(p.stdout.decode())
 
     def _load_packmol_output(self):
@@ -182,7 +368,7 @@ class AtomPacker(object):
             os.path.join(self.basedir, "output.pdb"), transfer_to_memory=True
         )
 
-    def _reassign_topology(self):
+    def _reassign_topology(self, replicate: int):
         """Take Packmol created Universe and add old topology features back in
 
         Attempts to reassign:
@@ -218,24 +404,26 @@ class AtomPacker(object):
         # add required attributes
         for attr in ["types", "names", "charges", "masses"]:
             if any(hasattr(pms.structure, attr) for pms in [self.smc, self.np_atom]):
-                self.packed.add_TopologyAttr(attr)
+                self.packed[replicate].add_TopologyAttr(attr)
 
                 if not all(
                     hasattr(pms.structure, attr) for pms in [self.smc, self.np_atom]
                 ):
                     warnings.warn("added attribute which not all templates had")
 
-        while index < len(self.packed.atoms):
+        while index < len(self.packed[replicate].atoms):
             # first atom we haven't dealt with yet
-            start = self.packed.atoms[index]
+            start = self.packed[replicate].atoms[index]
             # the resname was altered to give a hint to what template it was from
             template = [self.smc, self.np_atom][int(start.resname[1:])].structure
             # grab atomgroup which matches template
-            to_change = self.packed.atoms[index : index + len(template.atoms)]
+            to_change = self.packed[replicate].atoms[
+                index : index + len(template.atoms)
+            ]
 
             # Update residue names
             nres = len(template.residues)
-            self.packed.residues[
+            self.packed[replicate].residues[
                 start.resindex : start.resindex + nres
             ].resnames = template.residues.resnames
 
@@ -260,146 +448,112 @@ class AtomPacker(object):
         if bonds:
             # convert to tuples for hashability
             bonds = [tuple(val) for val in bonds]
-            self.packed.add_TopologyAttr("bonds", values=bonds)
+            self.packed[replicate].add_TopologyAttr("bonds", values=bonds)
         if angles:
             angles = [tuple(val) for val in angles]
-            self.packed.add_TopologyAttr("angles", values=angles)
+            self.packed[replicate].add_TopologyAttr("angles", values=angles)
         if dihedrals:
             dihedrals = [tuple(val) for val in dihedrals]
-            self.packed.add_TopologyAttr("dihedrals", values=dihedrals)
+            self.packed[replicate].add_TopologyAttr("dihedrals", values=dihedrals)
         if impropers:
             impropers = [tuple(val) for val in impropers]
-            self.packed.add_TopologyAttr("impropers", values=impropers)
+            self.packed[replicate].add_TopologyAttr("impropers", values=impropers)
 
-    def detect_cavity(
-        self,
-        parameters: Dict[str, Any],
-        vdw: Optional[Union[str, Dict[str, Dict[str, float]]]] = None,
-    ):
-        """Detect cavity within supramolecular cage
+    def _update_smc(self):
+        # Select supramolecular cage in packed structure
+        self.smc.structure.atoms = self.packed[0].select_atoms("chainID X")
 
-        Parameters
-        ----------
-        parameters : dict
-            cavity detection parameters
-        vdw : str, pathlib.Path, or dict
-            path to vdw radii file or a dictionary with vdw radii (default is None)
-        """
-        # Get van der Waals radii dictionary
-        if vdw is None:
-            vdw = pyKVFinder.read_vdw()
-        elif type(vdw) in [str]:
-            vdw = pyKVFinder.read_vdw(vdw)
-        elif type(vdw) in [dict]:
-            vdw = vdw
-        else:
-            raise TypeError(
-                "`vdw` must be a string of a van der Waals radii from .dat file."
-            )
+    def _detect_cavity(self):
+        # Detect cavity of packed structure
+        self.cavity_detector.atomic = self.cavity_detector._get_atomic(
+            self.smc.structure
+        )
+        self.cavity = self.cavity_detector._detect_cavity()
 
-        # Get atomic information
-        self.smc.strcture.atoms = self.packed.select_atoms("chainID X")
-        radius = []
-        for resname, atom, atom_symbol in zip(
-            self.smc.structure.atoms.resnames,
-            self.smc.structure.atoms.names,
-            self.smc.structure.atoms.types,
-        ):
-            if resname in vdw.keys():
-                if atom in vdw[resname].keys():
-                    radius.append(vdw[resname][atom])
-            else:
-                radius.append(vdw["GEN"][atom_symbol.upper()])
-        radius = numpy.array(radius)
-
-        # Get atomic coordinates
-        atomic = numpy.c_[
-            self.smc.structure.atoms.resnums,
-            self.smc.structure.atoms.chainIDs
-            if "chainIDs" in self.smc.structure.atoms._SETATTR_WHITELIST
-            else numpy.full(self.smc.structure.atoms.resnums.shape, ""),
-            self.smc.structure.atoms.resnames,
-            self.smc.structure.atoms.names,
-            self.smc.structure.atoms.positions,
-            radius,
-        ]  # shape (n_atoms, 7)
-
-        # Calculate vertices from grid
-        vertices = pyKVFinder.get_vertices(
-            atomic,
-            parameters["probe_out"],
-            parameters["step"],
+        # Export cavity
+        pyKVFinder.export(
+            os.path.join(self.basedir, "cavity.pdb"),
+            self.cavity,
+            None,
+            self.cavity_detector.vertices,
+            self.cavity_detector.step,
         )
 
-        # Detect cavity
-        self.ncav, self.cavity = pyKVFinder.detect(
-            atomic,
-            vertices,
-            parameters["step"],
-            parameters["probe_in"],
-            parameters["probe_out"],
-            parameters["removal_distance"],
-            parameters["volume_cutoff"],
+    def _filter_atoms_inside_cavity(self, replicate: int):
+        # Get nanoparticle atoms
+        atoms = self.packed[replicate].select_atoms("chainID A").positions
+
+        # Calculate the grid indices for each atom
+        indexes = (
+            (atoms - self.cavity_detector.vertices[0]) / self.cavity_detector.step
+        ).astype(int)
+
+        # Define mask
+        mask = self.cavity[indexes[:, 0], indexes[:, 1], indexes[:, 2]] > 1
+
+        # Select the atoms in chain A that are inside the cavities
+        inside_cavity = self.packed[replicate].select_atoms("chainID A")[mask]
+
+        # Select the smc in chain X
+        smc = self.packed[replicate].select_atoms("chainID X")
+
+        # Merge the two selections
+        self.packed[replicate].atoms = inside_cavity.union(smc)
+        self.packed[replicate].atoms.write(
+            os.path.join(self.basedir, f"packed{replicate}.pdb")
         )
 
-    def filter_inside_cavity(self):
-        if self.cavity is None:
-            raise ValueError("Cavity is not detected. Run `detect_cavity` first.")
-        else:
-            # Get nanoparticle atoms
-            atoms = self.packed.select_atoms("chainID A").positions
+    def _clean_tempfiles(self):
+        for f in ["0.pdb", "1.pdb", "2.pdb", os.path.join(self.basedir, "output.pdb")]:
+            try:
+                os.remove(f)
+            except FileNotFoundError:
+                pass
 
-            # Calculate the grid indices for each atom
-            indexes = (
-                (atoms - self.parameters["vertices"][0]) / self.parameters["step"]
-            ).astype(int)
-
-    def packing(
-        self,
-    ):
+    def packing(self, replicates: int = 1):
         """Run Packmol"""
+
+        if replicates < 1:
+            raise ValueError("replicates must be > 0")
+
         # Make packmol.inp file
         self._make_packmol_input()
-        # Run packmol: packmol < packmol.inp
-        self._run_packmol()
-        # Load output.pdb file and reassign topology
-        self.packed = self._load_packmol_output()
-        self._reassign_topology()
-        # Detect cavity
 
-        # Filter nanoparticle atoms inside cavity
+        # Create an empty list of replicates
+        self.packed = [None] * replicates
 
-        # Write packed structure to file
-        self.packed.atoms.write(os.path.join(self.basedir, "packed.pdb"))
+        for replicate in range(replicates):
+            # Run packmol: packmol < packmol.inp
+            self._run_packmol()
 
+            # Load output.pdb file and reassign topology
+            self.packed[replicate] = self._load_packmol_output()
+            self._reassign_topology(replicate)
 
-if __name__ == "__main__":
-    SMC = os.path.join("../", "data", "C1.pdb")
-    AU = os.path.join("../", "data", "Au.pdb")
+            # Update supramolecular cage positions
+            self._update_smc()
 
-    detection_parameters = {
-        "step": 0.25,
-        "probe_in": 1.4,
-        "probe_out": 10.0,
-        "removal_distance": 1.0,
-        "volume_cutoff": 5.0,
-    }
+            # Detect cavity
+            if self.cavity is None:
+                self._detect_cavity()
 
-    # Load Universe of Supramolecular cage (smc)
-    smc = PackmolStructure(
-        SMC,
-        number=1,
-        instructions=["center", "fixed 0. 0. 0. 0. 0. 0."],
-    )
-    # Load Universe of Nanoparticle atom (np_atom)
-    np_atom = PackmolStructure(
-        AU, number=40, instructions=["inside sphere 0. 0. 0. 7."]
-    )
+            # Filter atoms inside cavity
+            self._filter_atoms_inside_cavity(replicate)
 
-    # Prepare AtomPacker object
-    ap = AtomPacker(smc, np_atom, np_atom_radius=1.36, basedir="tests")
+        # Clean temporary files
+        self._clean_tempfiles()
 
-    # Run Packmol
-    ap.packing()
+        # Pandas DataFrame with atoms packed in each replicate
+        self.summary = self._summary(replicates)
+        self.summary.to_csv(os.path.join(self.basedir,"PackedAtoms.csv"))
 
-    # Filter cavity
+    def _summary(self, replicates: int):
+        natoms = []
+        for replicate in range(replicates):
+            natoms.append(len(self.packed[replicate].select_atoms("chainID A")))
+
+        return pandas.DataFrame(
+            natoms,
+            columns=["Packed atoms"],
+            index=[f"packed{replicate}.pdb" for replicate in range(replicates)],
+        )
