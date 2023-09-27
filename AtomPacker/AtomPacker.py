@@ -324,7 +324,7 @@ class AtomPacker(object):
             out.write(f"output {os.path.join(self.basedir, 'output.pdb')}\n\n")
 
             # Tolerance
-            out.write(f"tolerance {tolerance}\n\n")
+            out.write(f"tolerance {tolerance + 0.001}\n\n")
 
             # Inputs filetype
             out.write("filetype pdb\n\n")
