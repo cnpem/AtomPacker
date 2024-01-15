@@ -58,7 +58,7 @@ cd = CavityDetector(step=0.25, probe_in=1.4, probe_out=10.0, removal_distance=1.
 # Create the AtomPacked object
 # NOTE: For gold, atom radius is 1.36 Å
 ap = AtomPacker(smc, np_atom, np_atom_radius=1.36, cavity_detector=cd,
-basedir="pipeline-1")
+basedir="pipeline")
 
 # Run Packing algorithm with 10 replicates
 ap.packing(replicates=10)
