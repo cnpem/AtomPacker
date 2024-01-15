@@ -57,33 +57,20 @@ def test_pipeline_1(np_atom_params):
         np_atom,
         np_atom_radius=np_atom_radius,
         cavity_detector=cd,
-        basedir=os.path.join(HERE, "pipeline-2", basename),
+        basedir=os.path.join(HERE, "pipeline", basename),
     )
-
-    # Add a boundary to pack nanoparticle atoms (pipeline 2 specific step)
-    ap.add_boundary()
 
     # Run Packing algorithm
     ap.packing(replicates=REPLICATES)
 
     # Perform assertions to check if files were created for the specified np_atom and np_atom_radius
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-2", basename, "PackedAtoms.csv")
-    )
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-2", basename, "cavity.pdb")
-    )
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-2", basename, "packmol.inp")
-    )
-    assert os.path.exists(
-        os.path.join(HERE, "pipeline-2", basename, "packmol.stdout")
-    )
+    assert os.path.exists(os.path.join(HERE, "pipeline", basename, "PackedAtoms.csv"))
+    assert os.path.exists(os.path.join(HERE, "pipeline", basename, "cavity.pdb"))
+    assert os.path.exists(os.path.join(HERE, "pipeline", basename, "packmol.inp"))
+    assert os.path.exists(os.path.join(HERE, "pipeline", basename, "packmol.stdout"))
     for replicate in range(REPLICATES):
         assert os.path.exists(
-            os.path.join(
-                HERE, "pipeline-2", basename, f"packed{replicate}.pdb"
-            )
+            os.path.join(HERE, "pipeline", basename, f"packed{replicate}.pdb")
         )
 
 

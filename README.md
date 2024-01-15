@@ -34,9 +34,7 @@ pip install -e AtomPacker
 
 ## Usage
 
-There are two pipelines available to pack nanoparticle atoms inside a supramolecular cage:
-
-### 1. Packing nanoparticle atoms freely with packmol and filter atoms inside the cavity;
+Packing nanoparticle atoms freely with packmol and filter atoms inside the cavity
 
 ```python
 from AtomPacker import *
@@ -61,42 +59,6 @@ cd = CavityDetector(step=0.25, probe_in=1.4, probe_out=10.0, removal_distance=1.
 # NOTE: For gold, atom radius is 1.36 Å
 ap = AtomPacker(smc, np_atom, np_atom_radius=1.36, cavity_detector=cd,
 basedir="pipeline-1")
-
-# Run Packing algorithm with 10 replicates
-ap.packing(replicates=10)
-
-# Show number of packed atoms
-print(ap.summary)
-```
-
-### 2. Packing nanoparticle atoms with packmol inside a boundary and filter atoms inside the cavity;
-
-```python
-from AtomPacker import *
-
-# Load supramolecular cage into PackmolStructure object
-smc = PackmolStructure(
-    os.path.join("data", "C1.pdb"),
-    number=1,
-    instructions=["center", "fixed 0. 0. 0. 0. 0. 0."],
-)
-
-# Load nanoparticle atoms into PackmolStructure object
-# NOTE: You must set an appropriate number of atoms to fill the cavity and define a sphere that contains the whole supramolecular cage
-np_atom = PackmolStructure(
-    os.path.join("data", "Au.pdb"), number=40, instructions=["inside sphere 0. 0. 0. 6."]
-)
-
-# Create a CavityDetector with detection parameters appropriate for the supramolecular cage
-cd = CavityDetector(step=0.25, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0, vdw=None)
-
-# Create the AtomPacked object
-# NOTE: For gold, atom radius is 1.36 Å
-ap = AtomPacker(smc, np_atom, np_atom_radius=1.36, cavity_detector=cd,
-basedir="pipeline-2")
-
-# Add a boundary to pack nanoparticle atoms
-ap.add_boundary()
 
 # Run Packing algorithm with 10 replicates
 ap.packing(replicates=10)

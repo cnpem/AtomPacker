@@ -8,8 +8,7 @@ import os
 def clean_directories():
     # Define the directories to remove
     directories_to_remove = [
-        "tests/pipeline-1",
-        "tests/pipeline-2",
+        "tests/pipeline",
         # Add more directories to remove as needed
     ]
 

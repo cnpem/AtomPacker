@@ -4,7 +4,7 @@
 
 __author__ = """João V S Guerra"""
 __email__ = 'jvsguerra@gmail.com'
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 from . import AtomPacker
 from .AtomPacker import PackmolStructure, CavityDetector, AtomPacker

@@ -6,7 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "AtomPacker"
 description = "A python package for packing atoms into a supramolecular cage"
 authors = [
-    { name = "João Victor da Silva Guerra", email = "jvsguerra@gmail.com" },
+    { name = "João Victor da Silva Guerra" },
+    { name = "Gabriel Ernesto Jara" },
 ]
 maintainers = [
     { name = "João Victor da Silva Guerra", email = "jvsguerra@gmail.com" },
@@ -29,11 +30,11 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
 ]
 dependencies = [
-    "MDAnalysis==2.6.1",
-    "numpy==1.26.1",
-    "pyKVFinder==0.6.8",
-    "pandas==2.1.1",
-    "scipy==1.11.2",
+    "MDAnalysis==2.7.0",
+    "numpy==1.26.3",
+    "pyKVFinder==0.6.11",
+    "pandas==2.1.4",
+    "scipy==1.11.4",
 ]
 dynamic = ["version"]
 
