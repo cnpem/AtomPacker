@@ -426,11 +426,11 @@ class AtomPacker(object):
                 index : index + len(template.atoms)
             ]
 
-            # Update residue names
-            nres = len(template.residues)
-            self.packed[replicate].residues[
-                start.resindex : start.resindex + nres
-            ].resnames = template.residues.resnames
+            # # Update residue names
+            # nres = len(template.residues)
+            # self.packed[replicate].residues[
+            #     start.resindex : start.resindex + nres
+            # ].resnames = template.residues.resnames
 
             # atom attributes
             for attr in ["types", "names", "charges", "masses"]:
@@ -466,7 +466,7 @@ class AtomPacker(object):
 
     def _update_smc(self):
         # Select supramolecular cage in packed structure
-        self.smc.structure.atoms = self.packed[0].select_atoms("chainID X")
+        self.smc.structure.atoms = self.packed[0].select_atoms("resname R0")
 
     def _detect_cavity(self):
         # Detect cavity of packed structure
@@ -486,7 +486,7 @@ class AtomPacker(object):
 
     def _filter_atoms_inside_cavity(self, replicate: int):
         # Get nanoparticle atoms
-        atoms = self.packed[replicate].select_atoms("chainID A").positions
+        atoms = self.packed[replicate].select_atoms("resname R1").positions
 
         # Calculate the grid indices for each atom
         indexes = (
@@ -497,10 +497,10 @@ class AtomPacker(object):
         mask = self.cavity[indexes[:, 0], indexes[:, 1], indexes[:, 2]] > 1
 
         # Select the atoms in chain A that are inside the cavities
-        inside_cavity = self.packed[replicate].select_atoms("chainID A")[mask]
+        inside_cavity = self.packed[replicate].select_atoms("resname R1")[mask]
 
         # Select the smc in chain X
-        smc = self.packed[replicate].select_atoms("chainID X")
+        smc = self.packed[replicate].select_atoms("resname R0")
 
         # Merge the two selections
         self.packed[replicate].atoms = inside_cavity.union(smc)
@@ -556,13 +556,13 @@ class AtomPacker(object):
         # Packed atoms
         natoms = []
         for replicate in range(replicates):
-            natoms.append(len(self.packed[replicate].select_atoms("chainID A")))
+            natoms.append(len(self.packed[replicate].select_atoms("resname R1")))
 
         # Number of clashes and clashing atoms
         nclash, nclashing_atoms = [], []
         for replicate in range(replicates):
             # Get positions
-            positions = self.packed[replicate].select_atoms("chainID A").atoms.positions
+            positions = self.packed[replicate].select_atoms("resname R1").atoms.positions
 
             # Get clashes
             distances = pdist(positions)
