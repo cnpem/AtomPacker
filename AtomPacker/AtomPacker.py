@@ -515,11 +515,14 @@ class AtomPacker(object):
             except FileNotFoundError:
                 pass
 
-    def packing(self, replicates: int = 1):
+    def packing(self, replicates: int = 1, verbose: bool = False):
         """Run Packmol"""
 
         if replicates < 1:
             raise ValueError("replicates must be > 0")
+
+        if verbose:
+            print(f"[==> Packing atoms in {replicates} replicates")
 
         # Make packmol.inp file
         self._make_packmol_input()
@@ -528,6 +531,8 @@ class AtomPacker(object):
         self.packed = [None] * replicates
 
         for replicate in range(replicates):
+            if verbose:
+                print(f"> Replicate {replicate}")
             # Run packmol: packmol < packmol.inp
             self._run_packmol()
 
@@ -539,8 +544,12 @@ class AtomPacker(object):
         self._update_smc()
 
         # Detect cavity
+        if verbose:
+            print("[==> Detecting cavity")
         self._detect_cavity()
 
+        if verbose:
+            print("[==> Filtering atoms inside cavity")
         for replicate in range(replicates):
             # Filter atoms inside cavity
             self._filter_atoms_inside_cavity(replicate)
@@ -549,6 +558,8 @@ class AtomPacker(object):
         self._clean_tempfiles()
 
         # Pandas DataFrame with atoms packed in each replicate
+        if verbose:
+            print("[==> Summarizing data")
         self.summary = self._summary(replicates)
         self.summary.to_csv(os.path.join(self.basedir, "PackedAtoms.csv"))
 
