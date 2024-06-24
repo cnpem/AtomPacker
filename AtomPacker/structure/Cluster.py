@@ -78,6 +78,7 @@ class Cluster:
         method : str, optional
             The method to use for calculating the diameter of the cluster.
             Supported methods are 'maximum' (default), 'shape', and 'volume'.
+
             * 'maximum': calculates the maximum distance between any two \
             atoms in the cluster, considering their radius.
 
