@@ -13,7 +13,7 @@ First of all, import **AtomPacker** package on Python and create a AtomPacker.Ca
     >>> import AtomPacker
     >>> cage = AtomPacker.Cage()
 
-The Cage object will be used to load the cage structure from the PDB file (eg., `ZOCXOH.pdb <https://github.com/cnpem/AtomPacker/tests/data/ZOCXOH.pdb>`_).
+The Cage object will be used to load the cage structure from the PDB file (eg., `ZOCXOH.pdb <https://github.com/cnpem/AtomPacker/blob/main/tests/data/ZOCXOH.pdb>`_).
 
 .. code-block:: python
 
@@ -29,7 +29,7 @@ If you want to preview the cage structure, you can use the `Cage.preview <api.ht
     :width: 600
     :align: center
 
-The next step is to detect the cavity inside the cage structure. The `Cage.detect_cavity <api.html#AtomPacker.Cage.detect_cavity>`_ method will detect the cavity using the `pyKVFinder <https://lbc-lnbio.github.io/pyKVFinder/_api_reference/index.html>`_ detection parameters (``step``, ``probe_in``, ``probe_out``, ``removal_distance``, ``volume_cutoff``, ``surface``). We adjust the parameters to detect the cavity inside the cage structure.
+The next step is to detect the cavity inside the cage structure. The `Cage.detect_cavity <api.html#AtomPacker.Cage.detect_cavity>`_ method will detect the cavity using the `pyKVFinder <https://lbc-lnbio.github.io/pyKVFinder/_api_reference/detect.html>`_ detection parameters (``step``, ``probe_in``, ``probe_out``, ``removal_distance``, ``volume_cutoff``, ``surface``). We adjust the parameters to detect the cavity inside the cage structure.
 
 The detected cavity will be stored in the ``cavity`` attribute of the Cage object. 
 
