@@ -1,10 +1,35 @@
-# -*- coding: utf-8 -*-
+# This source code is part of the pyKVFinder package and is distributed
+# under the GNU GPL-3.0 license. Please see 'LICENSE' for further
+# information.
 
-"""Top-level package for AtomPacker."""
+"""
+A python package for packing nanoclusters into supramolecular cages. It \
+provides a set of tools for detecting cavities in molecular structures, \
+packing nanoclusters into these cavities, and exporting the resulting \
+structures.
 
-__author__ = """João V S Guerra"""
-__email__ = 'jvsguerra@gmail.com'
-__version__ = '0.1.1'
+Usage
+-----
+>>> import AtomPacker
+>>> cage = AtomPacker.Cage()
+>>> cage.load("path/to/structure.pdb")
+>>> cage.detect_cavity(step=0.6, probe_in=1.4, probe_out=10.0, \
+removal_distance=1.0, volume_cutoff=5.0)
+>>> cage.pack(atom_type='Au', lattice_type='fcc')
+>>> print(cage.summary)
 
-from . import AtomPacker
-from .AtomPacker import PackmolStructure, CavityDetector, AtomPacker
+See also
+--------
+* Documentation: https://cnpem.github.io/AtomPacker
+* GitHub repository: https://github.com/cnpem/AtomPacker
+* Issues: https://github.com/cnpem/AtomPacker/issues
+"""
+
+__version__ = "0.2.0"
+__name__ = "AtomPacker"
+license = "GNU GPL-3.0 License"
+
+from .core import (get_coordinates, get_depths, load_mmcif, load_mol2,
+                   load_pdb, load_xyz)
+from .structure import (Cage, Cavity, Cluster, get_lattice_constants,
+                        lattice_constants)

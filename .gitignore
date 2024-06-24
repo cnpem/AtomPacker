@@ -1,16 +1,3 @@
-# packmol
-packmol.tar.gz
-packmol/
-packmol.*
-
-# Debug
-run.py
-output.*
-*.cif
-*.pdb
-*.csv
-*.err
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
