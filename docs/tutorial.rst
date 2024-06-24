@@ -4,7 +4,7 @@ Tutorial
 
 This section provides a tutorial on how to use the AtomPacker package to pack nanoparticle atoms inside a target supramolecular cage. For detailed reference documentation of the functions and classes contained in the package, see the `API reference <api.html>`_.
 
-For this tutorial, we will use the `ZOCXOH <https://www.ccdc.cam.ac.uk/structures/Search?Ccdcid=ZOCXOH>`_ cage structure from the `ZOCXOH.pdb <https://github.com/cnpem/AtomPacker/tests/data/ZOCXOH.pdb>`_ file.
+For this tutorial, we will use the `ZOCXOH <https://www.ccdc.cam.ac.uk/structures/Search?Ccdcid=ZOCXOH>`_ cage structure from the `ZOCXOH.pdb <https://github.com/cnpem/AtomPacker/blob/main/tests/data/ZOCXOH.pdb>`_ file.
 
 First of all, import **AtomPacker** package on Python and create a AtomPacker.Cage object.
 
