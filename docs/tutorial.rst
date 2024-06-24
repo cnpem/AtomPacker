@@ -2,7 +2,7 @@
 Tutorial
 ========
 
-This section provides a tutorial on how to use the AtomPacker package to pack nanoparticle atoms inside a target supramolecular cage. For detailed reference documentation of the functions and classes contained in the package, see the `API reference <../api.html>`_.
+This section provides a tutorial on how to use the AtomPacker package to pack nanoparticle atoms inside a target supramolecular cage. For detailed reference documentation of the functions and classes contained in the package, see the `API reference <api.html>`_.
 
 For this tutorial, we will use the `ZOCXOH <https://www.ccdc.cam.ac.uk/structures/Search?Ccdcid=ZOCXOH>`_ cage structure from the `ZOCXOH.pdb <https://github.com/cnpem/AtomPacker/tests/data/ZOCXOH.pdb>`_ file.
 
@@ -19,7 +19,7 @@ The Cage object will be used to load the cage structure from the PDB file (eg., 
 
     >>> cage.load('ZOCXOH.pdb')
     
-If you want to preview the cage structure, you can use the `Cage.preview <../api.html#AtomPacker.Cage.preview>`_ method.
+If you want to preview the cage structure, you can use the `Cage.preview <api.html#AtomPacker.Cage.preview>`_ method.
 
 .. code-block:: python
 
@@ -29,7 +29,7 @@ If you want to preview the cage structure, you can use the `Cage.preview <../api
     :width: 600
     :align: center
 
-The next step is to detect the cavity inside the cage structure. The `Cage.detect_cavity <../api.html#AtomPacker.Cage.detect_cavity>`_ method will detect the cavity using the `pyKVFinder <https://lbc-lnbio.github.io/pyKVFinder/_api_reference/index.html>`_ detection parameters (``step``, ``probe_in``, ``probe_out``, ``removal_distance``, ``volume_cutoff``, ``surface``). We adjust the parameters to detect the cavity inside the cage structure.
+The next step is to detect the cavity inside the cage structure. The `Cage.detect_cavity <api.html#AtomPacker.Cage.detect_cavity>`_ method will detect the cavity using the `pyKVFinder <https://lbc-lnbio.github.io/pyKVFinder/_api_reference/index.html>`_ detection parameters (``step``, ``probe_in``, ``probe_out``, ``removal_distance``, ``volume_cutoff``, ``surface``). We adjust the parameters to detect the cavity inside the cage structure.
 
 The detected cavity will be stored in the ``cavity`` attribute of the Cage object. 
 
@@ -37,7 +37,7 @@ The detected cavity will be stored in the ``cavity`` attribute of the Cage objec
     
     >>> cage.detect_cavity(step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0)
 
-If you want to preview the cavity structure for quality control in your cavity detection, you can use the `Cavity.preview <../api.html#AtomPacker.Cavity.preview>`_ method.
+If you want to preview the cavity structure for quality control in your cavity detection, you can use the `Cavity.preview <api.html#AtomPacker.Cavity.preview>`_ method.
 
 .. code-block:: python
 
@@ -123,13 +123,13 @@ You can access the cavity volume using the ``volume`` attribute of the Cavity ob
     >>> print(cage.cavity.volume)
     531.58
 
-You can also save the cavity structure using the `Cavity.save <../api.html#AtomPacker.Cavity.save>`_ method.
+You can also save the cavity structure using the `Cavity.save <api.html#AtomPacker.Cavity.save>`_ method.
 
 .. code-block:: python
 
     >>> cage.cavity.save("cavity.pdb")
 
-The next step is to pack the nanoparticle atoms inside the cavity. The `Cage.pack <../api.html#AtomPacker.Cage.pack>`_ method will pack the atoms inside the cavity using the specified parameters (``atom_type``, ``lattice_type``, ``a``, ``b``, ``c``). We pack a gold (``Au``) nanoparticle inside the cavity using the face-centered cubic (``fcc``) lattice.
+The next step is to pack the nanoparticle atoms inside the cavity. The `Cage.pack <api.html#AtomPacker.Cage.pack>`_ method will pack the atoms inside the cavity using the specified parameters (``atom_type``, ``lattice_type``, ``a``, ``b``, ``c``). We pack a gold (``Au``) nanoparticle inside the cavity using the face-centered cubic (``fcc``) lattice.
 
 The packed cluster will be stored in the ``cluster`` attribute of the Cage object.
 
@@ -137,7 +137,7 @@ The packed cluster will be stored in the ``cluster`` attribute of the Cage objec
 
     >>> cage.pack(atom_type="Au", lattice_type="fcc", a=None, b=None, c=None)
 
-If you want to preview the cluster structure for quality control, you can use the `Cluster.preview <../api.html#AtomPacker.Cluster.preview>`_ method.
+If you want to preview the cluster structure for quality control, you can use the `Cluster.preview <api.html#AtomPacker.Cluster.preview>`_ method.
 
 .. code-block:: python
 
@@ -147,7 +147,7 @@ If you want to preview the cluster structure for quality control, you can use th
     :width: 600
     :align: center
 
-Also, you can preview the cage, cavity and cluster structure using the `Cage.preview <../api.html#AtomPacker.Cage.preview>`_ method.
+Also, you can preview the cage, cavity and cluster structure using the `Cage.preview <api.html#AtomPacker.Cage.preview>`_ method.
 
 .. code-block:: python
 
@@ -195,7 +195,7 @@ You can access the cluster coordinates using the ``coordinates`` attribute of th
      [ -2.44353   29.798132  15.913403]
      [ -2.44353   31.838133  13.873403]]
 
-You can also save the cavity structure using the `Cluster.save <../api.html#AtomPacker.Cluster.save>`_ method.
+You can also save the cavity structure using the `Cluster.save <api.html#AtomPacker.Cluster.save>`_ method.
 
 .. code-block:: python
 
