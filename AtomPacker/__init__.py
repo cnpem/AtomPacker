@@ -3,7 +3,7 @@
 # information.
 
 """
-A *AtomPacker* is a Python package for packing nanoclusters into \
+The *AtomPacker* is a Python package for packing nanoclusters into \
 supramolecular cages. It provides a set of tools for detecting cavities in \
 molecular structures, packing nanoclusters into these cavities, and exporting \
 the resulting structures.
