@@ -3,26 +3,10 @@
 # information.
 
 """
-A python package for packing nanoclusters into supramolecular cages. It \
-provides a set of tools for detecting cavities in molecular structures, \
-packing nanoclusters into these cavities, and exporting the resulting \
-structures.
-
-Usage
------
->>> import AtomPacker
->>> cage = AtomPacker.Cage()
->>> cage.load("path/to/structure.pdb")
->>> cage.detect_cavity(step=0.6, probe_in=1.4, probe_out=10.0, \
-removal_distance=1.0, volume_cutoff=5.0)
->>> cage.pack(atom_type='Au', lattice_type='fcc')
->>> print(cage.summary)
-
-See also
---------
-* Documentation: https://cnpem.github.io/AtomPacker
-* GitHub repository: https://github.com/cnpem/AtomPacker
-* Issues: https://github.com/cnpem/AtomPacker/issues
+A *AtomPacker* is a Python package for packing nanoclusters into \
+supramolecular cages. It provides a set of tools for detecting cavities in \
+molecular structures, packing nanoclusters into these cavities, and exporting \
+the resulting structures.
 """
 
 __version__ = "0.2.0"
