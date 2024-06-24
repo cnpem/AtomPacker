@@ -571,11 +571,12 @@ first."
         -------
         numpy.ndarray
             An array containing the atomic information. The array has the
-            following columns: element, x, y, z, radius.
+            following columns: resnum, chain, resname, element, x, y, z,
+            radius.
         """
         if self.universe is not None:
             return numpy.c_[
-                self.universe.atoms.resnums,  #  resnums
+                self.universe.atoms.resnums,  # resnums
                 self.universe.atoms.chainIDs,  # chains
                 self.universe.atoms.resnames,  # resnamess
                 self.universe.atoms.elements,  # atom type
