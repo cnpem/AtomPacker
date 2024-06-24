@@ -56,15 +56,15 @@ def test_xyz(xyz):
 def test_atomic(pdb):
     cage = Cage()
     cage.load(pdb)
-    # [x, y, z]
-    assert cage.coordinates.shape == (228, 3)
+    # [resnum, chain, resname, element, x, y, z, radius]
+    assert cage.atomic.shape == (228, 8)
 
 
 def test_coordinates(pdb):
     cage = Cage()
     cage.load(pdb)
-    # [element, x, y, z, radius]
-    assert cage.atomic.shape == (228, 5)
+    # [x, y, z]
+    assert cage.coordinates.shape == (228, 3)
 
 
 def test_universe_for_unloaded_cage():
