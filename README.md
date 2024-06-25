@@ -37,113 +37,101 @@ Or, to install the development version, run:
 pip install git+https://github.com/cnpem/AtomPacker.git
 ```
 
-## Architecture
-
-The package is organized as follows:
-
-```mermaid
-classDiagram
-    direction LR
-    Cage "1" o-- "1" Cavity : has
-    Cage "1" o-- "1..*" Cluster : fits in
-    Cavity "1" <|-- "1..*" Cluster : needs
-    namespace AtomPacker {
-        class Cage {
-            + numpy.ndarray atomic
-            + Cavity cavity
-            + numpy.ndarray centroid
-            + Cluster cluster
-            + numpy.ndarray coordinates
-            + MDAnalysis.Universe universe
-            + detect_cavity(float step, float probe_in, float probe_out, float removal_distance, float volume_cutoff, str surface, int nthreads, bool verbose, Dict~str,Any~ **kwargs) Cavity
-            + load(filename) MDAnalysis.Universe
-            + pack(str lattice_type, str atom_type, float atom_radius, float a, float b, float c) ase.cluster.Cluster
-            + preview(bool show_cavity, bool show_cluster, str renderer, Dict~str,Any~ **kwargs) void
-            # _build_cluster(str atom_type, str lattice_type, Tuple~float~ lattice_constants, numpy.ndarray center) ase.cluster.Cluster
-            # _filter_cluster(ase.cluster.Cluster cluster) ase.cluster.Cluster
-            # _get_cluster_layers(str atom_type, float factor) numpy.ndarray            
-        }
-        class Cavity {
-            + numpy.ndarray coordinates
-            + numpy.ndarray grid
-            + Universe universe
-            + numpy.ndarray volume
-            # float step
-            # float probe_in
-            # float probe_out
-            # float removal_distance
-            # numpy.ndarray vertices
-            # float volume_cutoff
-            # str surface
-            + preview(str renderer, float opacity, Dict~str,Any~ **kwargs) void
-            + select_cavity(List~int~ indexes) void
-            + save(str filename) void
-            # _get_universe() Universe
-        }
-        class Cluster {
-            + str atom_type
-            + numpy.ndarray coordinates
-            + str lattice_type
-            + Tuple~float~ lattice_constants
-            + int number_of_atoms
-            + int maximum_number_of_atoms
-            + pandas.DataFrame summary
-            + Universe universe
-            + numpy.ndarray volume
-            # Cavity cavity
-            # ase.cluster.Cluster cluster
-            + diameter(str method) float
-            + preview(str renderer, float opacity, Dict~str,Any~ **kwargs) void
-            + save(str filename) void
-            # _get_distances() numpy.ndarray
-            # _get_lattice_constants() Tuple~float~
-            # _get_radii() float
-            # _get_universe() Universe
-            
-        }
-    }
-```
-
 ## Usage
 
 Packing nanoparticle atoms, based on ASE nanocluster, and filter atoms inside a target cavity.
 
 ```python
 from AtomPacker import Cage
-
 # 1: Load structure from file
 cage = Cage()
 cage.load("tests/data/ZOCXOH.pdb")
-
 # Uncomment to preview the cage structure.
 # cage.preview()
-
 # 2: Detect cavity
 cage.detect_cavity(step=0.25, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0)
-
 # Uncomment to preview the cavity structure for detection quality control.
 # cage.cavity.preview()
-
 # Show volume
 print(f"Cavity volume: {cage.cavity.volume} A^3")
-
 # Uncomment to save the cavity structure.
 # cage.cavity.save("tests/cavity.pdb")
-
 # 3: Pack nanocluster into the cavity
 cage.pack(atom_type="Au", lattice_type="fcc", a=None, b=None, c=None)
-
 # Uncomment to preview the cluster structure for quality control.
 # cage.cavity.preview()
-
 # Uncomment to save the cluster structure.
 # cage.cluster.save("tests/cluster.pdb")
-
 # Uncomment to preview the cage, cavity and cluster structure.
 # cage.preview(show_cavity=True, show_cluster=True)
-
 # Show summary
 print(cage.cluster.summary)
+```
+
+## Architecture
+
+The package is organized as follows:
+
+```mermaid
+classDiagram
+direction LR
+Cage "1" o-- "1" Cavity : has
+Cage "1" o-- "1..*" Cluster : fits in
+Cavity "1" <|-- "1..*" Cluster : needs
+namespace AtomPacker{
+class Cage{
++ numpy.ndarray atomic
++ Cavity cavity
++ numpy.ndarray centroid
++ Cluster cluster
++ numpy.ndarray coordinates
++ MDAnalysis.Universe universe
++ detect_cavity(float step, float probe_in, float probe_out, float removal_distance, float volume_cutoff, str surface, int nthreads, bool verbose, Dict~str,Any~ **kwargs) Cavity
++ load(filename) MDAnalysis.Universe
++ pack(str lattice_type, str atom_type, float atom_radius, float a, float b, float c) ase.cluster.Cluster
++ preview(bool show_cavity, bool show_cluster, str renderer, Dict~str,Any~ **kwargs) void
+# _build_cluster(str atom_type, str lattice_type, Tuple~float~ lattice_constants, numpy.ndarray center) ase.cluster.Cluster
+# _filter_cluster(ase.cluster.Cluster cluster) ase.cluster.Cluster
+# _get_cluster_layers(str atom_type, float factor) numpy.ndarray            
+}
+class Cavity{
++ numpy.ndarray coordinates
++ numpy.ndarray grid
++ Universe universe
++ numpy.ndarray volume
+# float step
+# float probe_in
+# float probe_out
+# float removal_distance
+# numpy.ndarray vertices
+# float volume_cutoff
+# str surface
++ preview(str renderer, float opacity, Dict~str,Any~ **kwargs) void
++ select_cavity(List~int~ indexes) void
++ save(str filename) void
+# _get_universe() Universe
+}
+class Cluster{
++ str atom_type
++ numpy.ndarray coordinates
++ str lattice_type
++ Tuple~float~ lattice_constants
++ int number_of_atoms
++ int maximum_number_of_atoms
++ pandas.DataFrame summary
++ Universe universe
++ numpy.ndarray volume
+# Cavity cavity
+# ase.cluster.Cluster cluster
++ diameter(str method) float
++ preview(str renderer, float opacity, Dict~str,Any~ **kwargs) void
++ save(str filename) void
+# _get_distances() numpy.ndarray
+# _get_lattice_constants() Tuple~float~
+# _get_radii() float
+# _get_universe() Universe  
+}
+}
 ```
 
 ## Citing
