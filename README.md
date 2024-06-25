@@ -78,8 +78,8 @@ direction LR
 Cage "1" o-- "1" Cavity : has
 Cage "1" o-- "1..*" Cluster : fits in
 Cavity "1" <|-- "1..*" Cluster : needs
-namespace AtomPacker{
-class Cage{
+namespace AtomPacker {
+class Cage {
 + numpy.ndarray atomic
 + Cavity cavity
 + numpy.ndarray centroid
@@ -94,7 +94,7 @@ class Cage{
 # _filter_cluster(ase.cluster.Cluster cluster) ase.cluster.Cluster
 # _get_cluster_layers(str atom_type, float factor) numpy.ndarray            
 }
-class Cavity{
+class Cavity {
 + numpy.ndarray coordinates
 + numpy.ndarray grid
 + Universe universe
@@ -111,7 +111,7 @@ class Cavity{
 + save(str filename) void
 # _get_universe() Universe
 }
-class Cluster{
+class Cluster {
 + str atom_type
 + numpy.ndarray coordinates
 + str lattice_type
