@@ -1,10 +1,12 @@
 # AtomPacker
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/cnpem/AtomPacker)
+[![PyPI - Version](https://img.shields.io/pypi/v/AtomPacker)](https://pypi.org/project/AtomPacker/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/AtomPacker)](https://pypi.org/project/AtomPacker/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/AtomPacker)](https://pypi.org/project/AtomPacker/)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/cnpem/AtomPacker/testing.yml?label=testing)
 ![GitHub](https://img.shields.io/github/license/cnpem/AtomPacker)
 
-A python package for packing nanoclusters into supramolecular cages.
+A Python package for packing nanoclusters into supramolecular cages.
 
 See also:
 
