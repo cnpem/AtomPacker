@@ -228,16 +228,12 @@ are: .cif, .pdb, .xyz, .mol2."
             The type of atom in the cluster.
         lattice_type : str
             The type of lattice in the cluster. The available lattice types are
-            'bcc', 'fcc', 'hcp', 'graphite', 'sc', 'decahedron', 'icosahedron',
-            and 'octahedron'. The lattices are based on the `ase.cluster`
-            module.
-            The `ase.cluster` developers state that the module works properly
-            for the three cubic crystal structures: FaceCenteredCubic ('fcc'),
-            BodyCenteredCubic ('bcc'), and SimpleCubic ('sc'). Other structures
-            like HexagonalClosedPacked ('hcp'), Graphite ('graphite'),
-            Decahedron ('decahedron'), Icosahedron ('icosahedron'), and
-            Octahedron ('octahedron') are implemented, but currently do not
-            work correctly.
+            'bcc', 'fcc', 'hcp', and 'sc', that are based on the `ase.cluster`
+            module. The `ase.cluster` developers state that the module works 
+            properly for the three cubic crystal structures: FaceCenteredCubic 
+            ('fcc'), BodyCenteredCubic ('bcc'), and SimpleCubic ('sc'). Other 
+            structures like HexagonalClosedPacked ('hcp') is implemented, but 
+            currently do not work correctly.
         a : float, optional
             The lattice constant `a`. If not specified, the experimental value
             from `ase.data` is used.
