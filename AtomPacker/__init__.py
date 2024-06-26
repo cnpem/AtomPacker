@@ -9,7 +9,7 @@ molecular structures, packing nanoclusters into these cavities, and exporting \
 the resulting structures.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __name__ = "AtomPacker"
 license = "GNU GPL-3.0 License"
 
