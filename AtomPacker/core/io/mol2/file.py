@@ -9,6 +9,9 @@ This subpackage is used for reading MOL2 file format.
 __all__ = ["load_mol2"]
 
 
+from string import digits
+
+import numpy
 from MDAnalysis import Universe
 
 from ..vdw import _lookup_radii
@@ -36,6 +39,20 @@ def load_mol2(filename: str) -> Universe:
         universe.add_TopologyAttr(
             "chainIDs", ["X"] * universe.atoms.n_atoms
         )  # chainIDs
+
+    # Check if all elements are provided
+    if (universe.atoms.elements == "").any():
+        # Remove digits from element names
+        elements = [
+            atom.translate(str.maketrans("", "", digits))
+            # Convert any hydrogens to H
+            .replace("HA", "H")
+            .replace("HB", "H")
+            .replace("HC", "H")
+            for atom in universe.atoms.names
+        ]
+        # Add elements to topology
+        universe.add_TopologyAttr("elements", elements)
 
     # Add radii to topology
     universe.add_TopologyAttr(
