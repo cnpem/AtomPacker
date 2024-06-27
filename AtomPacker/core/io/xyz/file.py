@@ -35,6 +35,12 @@ def load_xyz(filename: str) -> Universe:
         universe.add_TopologyAttr(
             "chainIDs", ["X"] * universe.atoms.n_atoms
         )  # chainIDs
+    
+    # if resnames not provided, set them to 'X'
+    if "resnames" not in universe.atoms._SETATTR_WHITELIST:
+        universe.add_TopologyAttr(
+            "resnames", ["UNK"]
+        )  # resnames 
 
     # Add radii to topology
     universe.add_TopologyAttr(
