@@ -17,9 +17,7 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 
-def _get_bcc(
-    atom_type: str, a: Optional[float], b: Optional[float], c: Optional[float]
-) -> float | None:
+def _get_bcc(atom_type: str) -> float | None:
     """
     Get the lattice constant for BCC lattice.
 
@@ -27,21 +25,6 @@ def _get_bcc(
     ----------
     atom_type : str
         The atomic symbol of the atom.
-    a : float, optional
-        The lattice constant `a`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    b : float, optional
-        The lattice constant `b`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    c : float, optional
-        The lattice constant `c`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
 
     Returns
     -------
@@ -49,41 +32,22 @@ def _get_bcc(
         The lattice constant `a` for BCC lattice. If None, use
         `ase.data.reference_states`.
 
-    Raises
-    ------
-    ValueError
-        If the lattice constant `b` and `c` are provided.
-
     Warns
     -----
     UserWarning
         If the lattice constant `a` is not found in `lattice_constants`.
     """
-    # Check constant `b` and `c`
-    if b is not None or c is not None:
-        raise ValueError(
-            "The lattice constant `b` and `c` are not required for BCC \
-lattice."
-        )
-
-    # Check constant `a`
-    if isinstance(a, type(None)):
-        if isinstance(a, float):
-            return a
-    else:
-        try:
-            lattice_constants[atom_type]["bcc"]
-        except KeyError:
-            warn(
-                f"Constant `a` for {atom_type} not found for `bcc` in \
+    try:
+        return lattice_constants[atom_type]["bcc"]["a"]
+    except KeyError:
+        warn(
+            f"Constant `a` for {atom_type} not found for `bcc` in \
 lattice_constants. Using `ase.data.reference_states`."
-            )
-            return None
+        )
+        return None
 
 
-def _get_fcc(
-    atom_type: str, a: Optional[float], b: Optional[float], c: Optional[float]
-) -> float | None:
+def _get_fcc(atom_type: str) -> float | None:
     """
     Get the lattice constant for FCC lattice.
 
@@ -91,21 +55,6 @@ def _get_fcc(
     ----------
     atom_type : str
         The atomic symbol of the atom.
-    a : float, optional
-        The lattice constant `a`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    b : float, optional
-        The lattice constant `b`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    c : float, optional
-        The lattice constant `c`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
 
     Returns
     -------
@@ -113,41 +62,22 @@ def _get_fcc(
         The lattice constant `a` for FCC lattice. If None, use
         `ase.data.reference_states`.
 
-    Raises
-    ------
-    ValueError
-        If the lattice constant `b` and `c` are provided.
-
     Warns
     -----
     UserWarning
         If the lattice constant `a` is not found in `lattice_constants`.
     """
-    # Check constant `b` and `c`
-    if b is not None or c is not None:
-        raise ValueError(
-            "The lattice constant `b` and `c` are not required for FCC \
-lattice."
-        )
-
-    # Check constant `a`
-    if isinstance(a, type(None)):
-        if isinstance(a, float):
-            return a
-    else:
-        try:
-            lattice_constants[atom_type]["fcc"]
-        except KeyError:
-            warn(
-                f"Constant `a` for {atom_type} not found for `fcc` in \
+    try:
+        return lattice_constants[atom_type]["fcc"]["a"]
+    except KeyError:
+        warn(
+            f"Constant `a` for {atom_type} not found for `fcc` in \
 lattice_constants. Using `ase.data.reference_states`."
-            )
-            return None
+        )
+        return None
 
 
-def _get_hcp(
-    atom_type: str, a: Optional[float], b: Optional[float], c: Optional[float]
-) -> Tuple[float, float] | None:
+def _get_hcp(atom_type: str) -> Tuple[float, float] | None:
     """
     Get the lattice constant for HCP lattice.
 
@@ -155,21 +85,6 @@ def _get_hcp(
     ----------
     atom_type : str
         The atomic symbol of the atom.
-    a : float, optional
-        The lattice constant `a`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    b : float, optional
-        The lattice constant `b`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    c : float, optional
-        The lattice constant `c`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
 
     Returns
     -------
@@ -177,56 +92,26 @@ def _get_hcp(
         The lattice constants `(a, c)` for HCP lattice. If None, use
         `ase.data.reference_states`.
 
-    Raises
-    ------
-    ValueError
-        If the lattice constant `b` is provided.
-        If the lattice constant `a` is provided but not `c`.
-        If the lattice constant `c` is provided but not `a`.
-
     Warns
     -----
     UserWarning
         If the lattice constants `a` and `c` are not found in
         `lattice_constants`.
     """
-    # Check constant `a` and `c`
-    if a is None and c is not None:
-        raise ValueError(
-            "As you set the lattice constant `c`, the lattice constant `a` is \
-required."
+    try:
+        return (
+            lattice_constants[atom_type]["hcp"]["a"],
+            lattice_constants[atom_type]["hcp"]["c"],
         )
-    if a is not None and c is None:
-        raise ValueError(
-            "As you set the lattice constant `a`, the lattice constant `c` is \
-required."
-        )
-
-    # Check constant `b`
-    if b is not None:
-        raise ValueError(
-            "The lattice constant `b` is not required for HCP \
-lattice."
-        )
-
-    # Check constant `a` and `c`
-    if a is not None and c is not None:
-        if isinstance(a, float) and isinstance(c, float):
-            return (a, c)
-    else:
-        try:
-            lattice_constants[atom_type]["hcp"]
-        except KeyError:
-            warn(
-                f"Constants `a` and `c` for {atom_type} not found for `hcp` \
+    except KeyError:
+        warn(
+            f"Constants `a` and `c` for {atom_type} not found for `hcp` \
 in lattice_constants. Using `ase.data.reference_states`."
-            )
-            return None
+        )
+        return None
 
 
-def _get_sc(
-    atom_type: str, a: Optional[float], b: Optional[float], c: Optional[float]
-) -> float | None:
+def _get_sc(atom_type: str) -> float | None:
     """
      Get the lattice constant for SC lattice.
 
@@ -234,21 +119,6 @@ def _get_sc(
      ----------
      atom_type : str
         The atomic symbol of the atom.
-     a : float, optional
-        The lattice constant `a`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-     b : float, optional
-        The lattice constant `b`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-     c : float, optional
-        The lattice constant `c`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
 
      Returns
      -------
@@ -256,34 +126,18 @@ def _get_sc(
          The lattice constant `a` for SC lattice. If None, use
         `ase.data.reference_states`.
     """
-    # Check constant `b` and `c`
-    if b is not None or c is not None:
-        raise ValueError(
-            "The lattice constant `b` and `c` are not required for SC \
-lattice."
-        )
-
-    # Check constant `a`
-    if isinstance(a, type(None)):
-        if isinstance(a, float):
-            return a
-    else:
-        try:
-            lattice_constants[atom_type]["sc"]
-        except KeyError:
-            warn(
-                f"Constant `a` for {atom_type} not found for `sc` in \
+    try:
+        return lattice_constants[atom_type]["sc"]["a"]
+    except KeyError:
+        warn(
+            f"Constant `a` for {atom_type} not found for `sc` in \
 lattice_constants. Using `ase.data.reference_states`."
-            )
-            return None
+        )
+        return None
 
 
 def get_lattice_constants(
-    atom_type: str,
-    lattice_type: str,
-    a: Optional[float],
-    b: Optional[float],
-    c: Optional[float],
+    atom_type: str, lattice_type: str
 ) -> Tuple[float, float, float] | Tuple[float, float] | float | None:
     """
     Get the lattice constants for a given atom type and lattice type.
@@ -295,27 +149,17 @@ def get_lattice_constants(
     lattice_type : str
         The type of lattice in the cluster. The available lattice types are
         'bcc', 'fcc', 'hcp' and 'sc'.
-    a : float, optional
-        The lattice constant `a`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    b : float, optional
-        The lattice constant `b`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
-    c : float, optional
-        The lattice constant `c`. If provided, it will be used as is. If not,
-        the value will be fetched from `AtomPacker.data.lattice_constants`.
-        If it's not found there, the experimental value from `ase.data` will
-        be used.
 
     Returns
     -------
     Tuple[float, float, float] | Tuple[float, float] | float | None
         The lattice constants for the given atom type and lattice type. If
         None, use `ase.data.reference_states`.
+
+    Note
+    ----
+    The lattice constants will be fetched from `AtomPacker.data.lattice_constants`
+    if available. If not, the experimental values from `ase.data` will be used.
 
     Raises
     ------
@@ -324,13 +168,13 @@ def get_lattice_constants(
     """
     match lattice_type:
         case "bcc":
-            return _get_bcc(atom_type, a, b, c)
+            return _get_bcc(atom_type)
         case "fcc":
-            return _get_fcc(atom_type, a, b, c)
+            return _get_fcc(atom_type)
         case "hcp":
-            return _get_hcp(atom_type, a, b, c)
+            return _get_hcp(atom_type)
         case "sc":
-            return _get_sc(atom_type, a, b, c)
+            return _get_sc(atom_type)
         case _:
             raise ValueError(f"Invalid lattice type: {lattice_type}.")
 
