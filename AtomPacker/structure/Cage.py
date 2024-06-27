@@ -261,9 +261,30 @@ first."
             )
 
         # Get lattice constants
-        lattice_constants = get_lattice_constants(
-            atom_type, lattice_type, a=a, b=b, c=c
-        )
+        if lattice_type == "hcp":
+            if (a is None) and (c is None):
+                lattice_constants = get_lattice_constants(
+                    atom_type, lattice_type
+                )
+            elif (a is None) or (c is None):
+                if a is None:
+                    a, _ = get_lattice_constants(
+                        atom_type, lattice_type
+                    )
+                if c is None:
+                    _, c = get_lattice_constants(
+                        atom_type, lattice_type
+                    )
+                lattice_constants = (a, c)
+            else:
+                lattice_constants = (a, c)
+        elif lattice_type in ["fcc", "bcc", "sc"]:
+            if a is None:
+                lattice_constants = get_lattice_constants(
+                    atom_type, lattice_type
+                )
+            else:
+                lattice_constants = a
 
         # Make cluster
         _cluster = self._build_cluster(
