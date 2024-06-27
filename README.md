@@ -42,30 +42,30 @@ pip install git+https://github.com/cnpem/AtomPacker.git
 Packing nanoparticle atoms, based on ASE nanocluster, and filter atoms inside a target cavity.
 
 ```python
-from AtomPacker import Cage
+>>> from AtomPacker import Cage
 # 1: Load structure from file
-cage = Cage()
-cage.load("tests/data/ZOCXOH.pdb")
+>>> cage = Cage()
+>>> cage.load("tests/data/ZOCXOH.pdb")
 # Uncomment to preview the cage structure.
-# cage.preview()
+>>> # cage.preview()
 # 2: Detect cavity
-cage.detect_cavity(step=0.25, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0)
+>>> cage.detect_cavity(step=0.25, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0)
 # Uncomment to preview the cavity structure for detection quality control.
-# cage.cavity.preview()
+>>> # cage.cavity.preview()
 # Show volume
-print(f"Cavity volume: {cage.cavity.volume} A^3")
+>>> print(f"Cavity volume: {cage.cavity.volume} A^3")
 # Uncomment to save the cavity structure.
-# cage.cavity.save("tests/cavity.pdb")
+>>> # cage.cavity.save("tests/cavity.pdb")
 # 3: Pack nanocluster into the cavity
-cage.pack(atom_type="Au", lattice_type="fcc", a=None, b=None, c=None)
+>>> cage.pack(atom_type="Au", lattice_type="fcc", a=None, b=None, c=None)
 # Uncomment to preview the cluster structure for quality control.
-# cage.cavity.preview()
+>>> # cage.cavity.preview()
 # Uncomment to save the cluster structure.
-# cage.cluster.save("tests/cluster.pdb")
+>>> # cage.cluster.save("tests/cluster.pdb")
 # Uncomment to preview the cage, cavity and cluster structure.
-# cage.preview(show_cavity=True, show_cluster=True)
+>>> # cage.preview(show_cavity=True, show_cluster=True)
 # Show summary
-print(cage.cluster.summary)
+>>> print(cage.cluster.summary)
 ```
 
 ## Architecture
