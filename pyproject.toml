@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "ase==3.23.0",
-    "biopython==1.83.0",
+    "biopython==1.84",
     "MDAnalysis==2.7.0",
     "numpy==1.26.4",
     "pandas==2.2.2",
