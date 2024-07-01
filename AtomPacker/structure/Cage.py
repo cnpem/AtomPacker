@@ -10,8 +10,11 @@ create a :class:`AtomPacker.structure.Cage` object, which is a container for
 the atoms of the structure.
 """
 
+import itertools
 import os
+import logging
 import warnings
+from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
 import ase
@@ -218,6 +221,8 @@ are: .cif, .pdb, .xyz, .mol2."
         a: Optional[float] = None,
         b: Optional[float] = None,
         c: Optional[float] = None,
+        optimize: bool = False,
+        clashing_tolerance: float = 0.95,
     ) -> Cluster:
         """
         Pack the cluster of atoms into the cage structure.
@@ -243,6 +248,10 @@ are: .cif, .pdb, .xyz, .mol2."
         c : float, optional
             The lattice constant `c`. If not specified, the experimental value
             from `ase.data` is used.
+        optimize : bool, optional
+            Optimize the cluster packing, by default False.
+        clashing_tolerance : float, optional
+            The clashing tolerance (Å), by default 0.95.
 
         Raises
         ------
@@ -284,6 +293,8 @@ first."
             lattice_type,
             lattice_constants,
             center=self.centroid,
+            optimize=optimize,
+            clashing_tolerance=clashing_tolerance,
         )
 
         # Create `AtomPacker.structure.Cluster` object
@@ -419,6 +430,8 @@ first."
             Tuple[float, float, float] | Tuple[float, float] | Tuple[float] | None
         ),
         center: numpy.ndarray,
+        optimize: bool = False,
+        clashing_tolerance: float = 0.95,
     ) -> ase.cluster.Cluster:
         """
         Build the cluster of atoms inside cavity.
@@ -433,6 +446,10 @@ first."
             experimental value from `ase.data` is used.
         center : numpy.ndarray
             The center of the cluster.
+        optimize : bool, optional
+            Optimize the cluster packing, by default False.
+        clashing_tolerance : float, optional
+            The clashing tolerance (Å), by default 0.95.
 
         Returns
         -------
@@ -480,16 +497,82 @@ first."
         # Translate the cluster to the center
         cluster.positions += center
 
-        # Filter atoms inside the cavity
-        cluster = self._filter_outside_cavity(cluster)
+        if optimize:
+            # Create rotation angles and translations for the cluster
+            angles = numpy.arange(start=-75, stop=90, step=25)
+            translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
 
-        # Filter atoms clashing with the cage
-        cluster = self._filter_clashing_atoms(cluster)
+            # Configure logging to file at the start
+            logging.basicConfig(
+                filename="optimization.log",
+                level=logging.INFO,
+                filemode="w",
+                format="%(asctime)s - %(message)s",
+            )
+        else:
+            # Create rotation angles and translations for the cluster
+            angles = [0.0]
+            translations = [0.0]
+
+        # Initialize best cluster
+        best_n_atoms = float("-inf")
+        best_rotation = None
+        best_translation = None
+
+        # Iterate over all possible combinations of angles and translations
+        for phi, theta, psi, x, y, z in itertools.product(
+            angles, angles, angles, translations, translations, translations
+        ):
+            # Create a copy of the cluster
+            _tmp = deepcopy(cluster)
+
+            # Rotate and translate the cluster
+            _tmp.euler_rotate(center="COP", phi=phi, theta=theta, psi=psi)
+            _tmp.translate([x, y, z])
+
+            # Filter atoms inside the cavity
+            _tmp = self._filter_outside_cavity(_tmp)
+
+            # Filter atoms clashing with the cage
+            _tmp = self._filter_clashing_atoms(
+                _tmp, clashing_tolerance=clashing_tolerance
+            )
+
+            # Get the number of atoms in the cluster
+            n_atoms = len(_tmp)
+            if optimize:
+                logging.basicConfig(level=logging.INFO)
+                logging.info(
+                    f"Number of Atoms: {n_atoms}, Rotate({phi:=},{theta:=},{psi:=}), Translate({x:=},{y:=},{z:=})"
+                )
+
+            # Check if the number of atoms is less than the best number of atoms
+            if n_atoms > best_n_atoms:
+                # Update the best number of atoms, rotation, and translation
+                best_n_atoms = n_atoms
+                best_rotation = (phi, theta, psi)
+                best_translation = (x, y, z)
+
+                # Update the best cluster
+                cluster = deepcopy(_tmp)
+
+        # Log optimal condition
+        if optimize:
+            phi, theta, psi = best_rotation
+            x, y, z = best_translation
+            logging.info(
+                f"An Optimal Solution\n[==> Number of Atoms: {best_n_atoms}, Rotate({phi:=},{theta:=},{psi:=}), Translate({x:=},{y:=},{z:=})\n"
+            )
+
+        # Remove temporary cluster
+        del _tmp
 
         return cluster
 
     def _filter_clashing_atoms(
-        self, cluster: ase.cluster.Cluster
+        self,
+        cluster: ase.cluster.Cluster,
+        clashing_tolerance: float = 0.95,
     ) -> ase.cluster.Cluster:
         """
         Filter atoms in the cluster that are clashing with the cage.
@@ -498,6 +581,8 @@ first."
         ----------
         cluster : ase.cluster.Cluster
             The cluster of atoms.
+        clashing_tolerance : float, optional
+            The clashing tolerance (Å), by default 0.95.
         """
         # Get radii of atoms in the cluster
         cluster_distances = numpy.linalg.norm(
@@ -509,9 +594,13 @@ first."
             len(cluster), (cluster_distances[cluster_distances > 0] / 2).min()
         )
 
-        # Get internal limits between cluster atoms and cage atoms 
+        # Get internal limits between cluster atoms and cage atoms
         # (cluster atom radius + cage atom radius)
-        limits = cluster_radii[:, numpy.newaxis] + self.universe.atoms.radii
+        limits = (
+            cluster_radii[:, numpy.newaxis]
+            + self.universe.atoms.radii
+            - clashing_tolerance
+        )
 
         # Get distance between cluster positions and cage positions
         distances = numpy.linalg.norm(
@@ -524,7 +613,7 @@ first."
         # Remove atoms clashing with the cage
         for atom_index in numpy.flip(clashing.nonzero()[0]):
             cluster.pop(atom_index)
-        
+
         return cluster
 
     def _filter_outside_cavity(
