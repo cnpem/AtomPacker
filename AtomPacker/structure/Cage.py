@@ -229,10 +229,10 @@ are: .cif, .pdb, .xyz, .mol2."
         lattice_type : str
             The type of lattice in the cluster. The available lattice types are
             'bcc', 'fcc', 'hcp', and 'sc', that are based on the `ase.cluster`
-            module. The `ase.cluster` developers state that the module works 
-            properly for the three cubic crystal structures: FaceCenteredCubic 
-            ('fcc'), BodyCenteredCubic ('bcc'), and SimpleCubic ('sc'). Other 
-            structures like HexagonalClosedPacked ('hcp') is implemented, but 
+            module. The `ase.cluster` developers state that the module works
+            properly for the three cubic crystal structures: FaceCenteredCubic
+            ('fcc'), BodyCenteredCubic ('bcc'), and SimpleCubic ('sc'). Other
+            structures like HexagonalClosedPacked ('hcp') is implemented, but
             currently do not work correctly.
         a : float, optional
             The lattice constant `a`. If not specified, the experimental value
@@ -263,26 +263,18 @@ first."
         # Get lattice constants
         if lattice_type == "hcp":
             if (a is None) and (c is None):
-                lattice_constants = get_lattice_constants(
-                    atom_type, lattice_type
-                )
+                lattice_constants = get_lattice_constants(atom_type, lattice_type)
             elif (a is None) or (c is None):
                 if a is None:
-                    a, _ = get_lattice_constants(
-                        atom_type, lattice_type
-                    )
+                    a, _ = get_lattice_constants(atom_type, lattice_type)
                 if c is None:
-                    _, c = get_lattice_constants(
-                        atom_type, lattice_type
-                    )
+                    _, c = get_lattice_constants(atom_type, lattice_type)
                 lattice_constants = (a, c)
             else:
                 lattice_constants = (a, c)
         elif lattice_type in ["fcc", "bcc", "sc"]:
             if a is None:
-                lattice_constants = get_lattice_constants(
-                    atom_type, lattice_type
-                )
+                lattice_constants = get_lattice_constants(atom_type, lattice_type)
             else:
                 lattice_constants = a
 
@@ -489,23 +481,63 @@ first."
         cluster.positions += center
 
         # Filter atoms inside the cavity
-        cluster = self._filter_cluster(cluster)
+        cluster = self._filter_outside_cavity(cluster)
+
+        # Filter atoms clashing with the cage
+        cluster = self._filter_clashing_atoms(cluster)
 
         return cluster
 
-    def _filter_cluster(
+    def _filter_clashing_atoms(
+        self, cluster: ase.cluster.Cluster
+    ) -> ase.cluster.Cluster:
+        """
+        Filter atoms in the cluster that are clashing with the cage.
+
+        Parameters
+        ----------
+        cluster : ase.cluster.Cluster
+            The cluster of atoms.
+        """
+        # Get radii of atoms in the cluster
+        cluster_distances = numpy.linalg.norm(
+            cluster.positions[:, numpy.newaxis, :]
+            - cluster.positions[numpy.newaxis, :, :],
+            axis=-1,
+        )
+        cluster_radii = numpy.full(
+            len(cluster), (cluster_distances[cluster_distances > 0] / 2).min()
+        )
+
+        # Get internal limits between cluster atoms and cage atoms 
+        # (cluster atom radius + cage atom radius)
+        limits = cluster_radii[:, numpy.newaxis] + self.universe.atoms.radii
+
+        # Get distance between cluster positions and cage positions
+        distances = numpy.linalg.norm(
+            cluster.positions[:, None] - self.coordinates[None], axis=-1
+        )
+
+        # Get radii of atoms in the cage
+        clashing = (distances < limits).any(axis=1)
+
+        # Remove atoms clashing with the cage
+        for atom_index in numpy.flip(clashing.nonzero()[0]):
+            cluster.pop(atom_index)
+        
+        return cluster
+
+    def _filter_outside_cavity(
         self,
         cluster: ase.cluster.Cluster,
     ) -> ase.cluster.Cluster:
         """
-        Filter atoms in the cluster that are inside the cavity.
+        Filter atoms in the cluster that are outside the cavity.
 
         Parameters
         ----------
-        cavity_coords : numpy.ndarray
-            The coordinates of the cavity.
-        cluster_coords : numpy.ndarray
-            The coordinates of the cluster.
+        cluster : ase.cluster.Cluster
+            The cluster of atoms.
 
         Returns
         -------
