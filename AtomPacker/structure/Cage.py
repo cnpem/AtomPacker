@@ -221,8 +221,10 @@ are: .cif, .pdb, .xyz, .mol2."
         a: Optional[float] = None,
         b: Optional[float] = None,
         c: Optional[float] = None,
+        clashing_tolerance: float = 0.0,
         optimize: bool = False,
-        clashing_tolerance: float = 0.95,
+        angles: Optional[numpy.ndarray] = None,
+        translations: Optional[numpy.ndarray] = None,
     ) -> Cluster:
         """
         Pack the cluster of atoms into the cage structure.
@@ -240,18 +242,30 @@ are: .cif, .pdb, .xyz, .mol2."
             structures like HexagonalClosedPacked ('hcp') is implemented, but
             currently do not work correctly.
         a : float, optional
-            The lattice constant `a`. If not specified, the experimental value
-            from `ase.data` is used.
+            The lattice constant `a`. If not specified, the lattice constant
+            will be fetched from `AtomPacker.data.lattice_constants` if
+            available. If not, the experimental values from `ase.data` will be
+            used.
         b : float, optional
-            The lattice constant `b`. If not specified, the experimental value
-            from `ase.data` is used.
+            The lattice constant `b`. If not specified, the lattice constant
+            will be fetched from `AtomPacker.data.lattice_constants` if
+            available. If not, the experimental values from `ase.data` will be
+            used.
         c : float, optional
-            The lattice constant `c`. If not specified, the experimental value
-            from `ase.data` is used.
+            The lattice constant `c`. If not specified, the lattice constant
+            will be fetched from `AtomPacker.data.lattice_constants` if
+            available. If not, the experimental values from `ase.data` will be
+            used.
+        clashing_tolerance : float, optional
+            The clashing tolerance (Å), by default 0.0.
         optimize : bool, optional
             Optimize the cluster packing, by default False.
-        clashing_tolerance : float, optional
-            The clashing tolerance (Å), by default 0.95.
+        angles : numpy.ndarray, optional
+            The rotation angles for the cluster optimization, by default None.
+            If None, the angles are [-75, -50, -25, 0, 25, 50, 75].
+        translations : numpy.ndarray, optional
+            The translations for the cluster optimization, by default None. If
+            None, the translations are [-0.2, 0.0, 0.2].
 
         Raises
         ------
@@ -293,8 +307,10 @@ first."
             lattice_type,
             lattice_constants,
             center=self.centroid,
-            optimize=optimize,
             clashing_tolerance=clashing_tolerance,
+            optimize=optimize,
+            angles=angles,
+            translations=translations,
         )
 
         # Create `AtomPacker.structure.Cluster` object
@@ -426,12 +442,12 @@ first."
         self,
         atom_type: str,
         lattice_type: str,
-        lattice_constants: (
-            Tuple[float, float, float] | Tuple[float, float] | Tuple[float] | None
-        ),
+        lattice_constants: Tuple[float, float] | Tuple[float] | None,
         center: numpy.ndarray,
+        clashing_tolerance: float = 0.0,
         optimize: bool = False,
-        clashing_tolerance: float = 0.95,
+        angles: Optional[numpy.ndarray] = None,
+        translations: Optional[numpy.ndarray] = None,
     ) -> ase.cluster.Cluster:
         """
         Build the cluster of atoms inside cavity.
@@ -441,15 +457,23 @@ first."
         atom_type : str
             The type of atom in the cluster.
         lattice_type : str
-        lattice_constants : Tuple[float, float, float] | Tuple[float, float] | Tuple[float] | None
-            The lattice constants `a`, `b`, and `c`. If not specified, the
-            experimental value from `ase.data` is used.
+        lattice_constants : Tuple[float, float] | Tuple[float] | None
+            The lattice constants `a`, `b`, and `c`. If not specified,
+            the lattice constants will be fetched from `AtomPacker.data
+            .lattice_constants` if available. If not, the experimental
+            values from `ase.data` will be used.
         center : numpy.ndarray
             The center of the cluster.
+        clashing_tolerance : float, optional
+            The clashing tolerance (Å), by default 0.0.
         optimize : bool, optional
             Optimize the cluster packing, by default False.
-        clashing_tolerance : float, optional
-            The clashing tolerance (Å), by default 0.95.
+        angles : numpy.ndarray, optional
+            The rotation angles for the cluster optimization, by default None.
+            If None, the angles are [-75, -50, -25, 0, 25, 50, 75].
+        translations : numpy.ndarray, optional
+            The translations for the cluster optimization, by default None. If
+            None, the translations are [-0.2, 0.0, 0.2].
 
         Returns
         -------
@@ -499,8 +523,10 @@ first."
 
         if optimize:
             # Create rotation angles and translations for the cluster
-            angles = numpy.arange(start=-75, stop=90, step=25)
-            translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
+            if angles is None:
+                angles = numpy.arange(start=-75, stop=90, step=25)
+            if translations is None:
+                translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
 
             # Configure logging to file at the start
             logging.basicConfig(
@@ -508,6 +534,7 @@ first."
                 level=logging.INFO,
                 filemode="w",
                 format="%(asctime)s - %(message)s",
+                datefmt='%Y-%m-%d %H:%M:%S'
             )
         else:
             # Create rotation angles and translations for the cluster
@@ -541,9 +568,9 @@ first."
             # Get the number of atoms in the cluster
             n_atoms = len(_tmp)
             if optimize:
-                logging.basicConfig(level=logging.INFO)
                 logging.info(
-                    f"Number of Atoms: {n_atoms}, Rotate({phi:=},{theta:=},{psi:=}), Translate({x:=},{y:=},{z:=})"
+                    f"Number of Atoms: {n_atoms}, Rotate({phi=:.2f},\
+{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f})"
                 )
 
             # Check if the number of atoms is less than the best number of atoms
@@ -561,7 +588,8 @@ first."
             phi, theta, psi = best_rotation
             x, y, z = best_translation
             logging.info(
-                f"An Optimal Solution\n[==> Number of Atoms: {best_n_atoms}, Rotate({phi:=},{theta:=},{psi:=}), Translate({x:=},{y:=},{z:=})\n"
+                f"An Optimal Solution\n[==> Number of Atoms: {best_n_atoms}, \
+Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f})\n"
             )
 
         # Remove temporary cluster
@@ -572,7 +600,7 @@ first."
     def _filter_clashing_atoms(
         self,
         cluster: ase.cluster.Cluster,
-        clashing_tolerance: float = 0.95,
+        clashing_tolerance: float = 0.0,
     ) -> ase.cluster.Cluster:
         """
         Filter atoms in the cluster that are clashing with the cage.
@@ -582,7 +610,7 @@ first."
         cluster : ase.cluster.Cluster
             The cluster of atoms.
         clashing_tolerance : float, optional
-            The clashing tolerance (Å), by default 0.95.
+            The clashing tolerance (Å), by default 0.0.
         """
         # Get radii of atoms in the cluster
         cluster_distances = numpy.linalg.norm(

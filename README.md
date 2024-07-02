@@ -140,7 +140,7 @@ If you find `AtomPacker` useful for you, please cite the following references:
 
 - Guerra, J. V. S., Ribeiro-Filho, H. V., Jara, G. E., Bortot, L. O., Pereira, J. G. C., & Lopes-de-Oliveira, P. S. (2021). pyKVFinder: an efficient and integrable Python package for biomolecular cavity detection and characterization in data science. BMC bioinformatics, 22(1), 607. https://doi.org/10.1186/s12859-021-04519-4.
 
-- Manuscript in preparation.
+- (manuscript in preparation) Guerra, J. V. S., Jara, G. E., Lopes-de-Oliveira, P. S. & Szalóki, G. (2024) Modellization of confined nanoparticles.
 
 ## License
 
