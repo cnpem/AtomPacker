@@ -273,6 +273,8 @@ are: .cif, .pdb, .xyz, .mol2."
             If the cage is not loaded.
         ValueError
             If the cavity is not detected.
+        ValueError
+            If the clashing tolerance is less than 0.
         """
         if self.universe is None:
             raise ValueError("No cage loaded. Please run load() first.")
@@ -301,11 +303,15 @@ first."
             else:
                 lattice_constants = a
 
+        # Check if clashing tolerance is greater than or equal to 0
+        if clashing_tolerance < 0:
+            raise ValueError("Clashing tolerance must be greater than or equal to 0.")
+
         # Make cluster
         _cluster = self._build_cluster(
             atom_type,
             lattice_type,
-            lattice_constants,
+            lattice_constants=lattice_constants,
             center=self.centroid,
             clashing_tolerance=clashing_tolerance,
             optimize=optimize,
@@ -534,7 +540,7 @@ first."
                 level=logging.INFO,
                 filemode="w",
                 format="%(asctime)s - %(message)s",
-                datefmt='%Y-%m-%d %H:%M:%S'
+                datefmt="%Y-%m-%d %H:%M:%S",
             )
         else:
             # Create rotation angles and translations for the cluster
@@ -567,11 +573,6 @@ first."
 
             # Get the number of atoms in the cluster
             n_atoms = len(_tmp)
-            if optimize:
-                logging.info(
-                    f"Number of Atoms: {n_atoms}, Rotate({phi=:.2f},\
-{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f})"
-                )
 
             # Check if the number of atoms is less than the best number of atoms
             if n_atoms > best_n_atoms:
@@ -582,6 +583,11 @@ first."
 
                 # Update the best cluster
                 cluster = deepcopy(_tmp)
+                if optimize:
+                    logging.info(
+                        f"Best Number of Atoms: {n_atoms}, Rotate({phi=:.2f},\
+{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f})"
+                    )
 
         # Log optimal condition
         if optimize:
@@ -613,14 +619,20 @@ Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f}
             The clashing tolerance (Å), by default 0.0.
         """
         # Get radii of atoms in the cluster
+        # If cluster has more than one atom, get the minimum distance between
+        # atoms and use it as the radius of the cluster atom. If cluster has
+        # only one atom, get the van der Waals radius of the atom.
         cluster_distances = numpy.linalg.norm(
             cluster.positions[:, numpy.newaxis, :]
             - cluster.positions[numpy.newaxis, :, :],
             axis=-1,
         )
-        cluster_radii = numpy.full(
-            len(cluster), (cluster_distances[cluster_distances > 0] / 2).min()
-        )
+        if len(cluster) > 1:
+            radius = (cluster_distances[cluster_distances > 0] / 2).min()
+        else:
+
+            radius = covalent_radii[atomic_numbers[cluster.get_chemical_formula()]]
+        cluster_radii = numpy.full(len(cluster), radius)
 
         # Get internal limits between cluster atoms and cage atoms
         # (cluster atom radius + cage atom radius)
