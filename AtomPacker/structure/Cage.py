@@ -766,9 +766,8 @@ Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f}
         ValueError
             If the cage is not loaded.
         """
-        if self.universe is None:
-            raise ValueError("No cage loaded. Please run load() first.")
-        return self.coordinates.mean(axis=0)
+        if self.universe is not None:
+            return self.coordinates.mean(axis=0)
 
     @property
     def coordinates(self) -> numpy.ndarray:
