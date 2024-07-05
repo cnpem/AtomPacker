@@ -91,7 +91,8 @@ class Cage {
 + pack(str lattice_type, str atom_type, float atom_radius, float a, float b, float c) ase.cluster.Cluster
 + preview(bool show_cavity, bool show_cluster, str renderer, Dict~str,Any~ **kwargs) void
 # _build_cluster(str atom_type, str lattice_type, Tuple~float~ lattice_constants, numpy.ndarray center) ase.cluster.Cluster
-# _filter_cluster(ase.cluster.Cluster cluster) ase.cluster.Cluster
+# _filter_clashing_atoms(ase.cluster.Cluster cluster, float clashing_tolerance) ase.cluster.Cluster
+# _filter_outside_cavity(ase.cluster.Cluster cluster) ase.cluster.Cluster
 # _get_cluster_layers(str atom_type, float factor) numpy.ndarray            
 }
 class Cavity {
