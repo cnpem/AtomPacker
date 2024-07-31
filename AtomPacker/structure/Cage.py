@@ -630,7 +630,6 @@ Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f}
         if len(cluster) > 1:
             radius = (cluster_distances[cluster_distances > 0] / 2).min()
         else:
-
             radius = covalent_radii[atomic_numbers[cluster.get_chemical_formula()]]
         cluster_radii = numpy.full(len(cluster), radius)
 

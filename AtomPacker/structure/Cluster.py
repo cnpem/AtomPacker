@@ -16,6 +16,7 @@ from typing import Any, Dict, Tuple
 import ase
 import numpy
 import pandas
+from ase.data import atomic_numbers, covalent_radii
 from MDAnalysis import Universe
 from plotly.express import scatter_3d
 
@@ -278,11 +279,13 @@ class Cluster:
         float
             The radius of the atoms in the cluster.
         """
-        # Calculate distances between atoms
-        distances = self._get_distances()
-
-        # Calculate radii, ignoring self-distances
-        radii = (distances[distances > 0] / 2).min()
+        if len(self._cluster) > 1:
+            # Calculate distances between atoms
+            distances = self._get_distances()
+            # Calculate radii, ignoring self-distances
+            radii = (distances[distances > 0] / 2).min()
+        else:
+            radii = covalent_radii[atomic_numbers[self._cluster.get_chemical_formula()]]
 
         return radii
 
