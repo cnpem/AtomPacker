@@ -1,4 +1,4 @@
-# This source code is part of the pyKVFinder package and is distributed
+# This source code is part of the AtomPacker package and is distributed
 # under the GNU GPL-3.0 license. Please see 'LICENSE' for further
 # information.
 

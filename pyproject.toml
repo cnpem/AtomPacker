@@ -8,6 +8,7 @@ description = "A python package for packing nanoclusters into supramolecular cag
 authors = [
     { name = "João V. S. Guerra", email = "jvsguerra@gmail.com" },
     { name = "Gabriel E. Jara" },
+    { name = "Paulo S. Lopes-de-Oliveira" },
     { name = "György Szalóki" },
 ]
 maintainers = [{ name = "João V. S. Guerra", email = "jvsguerra@gmail.com" }]
@@ -16,7 +17,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.9"
 keywords = ["computational chemistry", "atom packing", "sphere packing"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     'Programming Language :: Python',
@@ -33,18 +34,18 @@ classifiers = [
 ]
 dependencies = [
     "ase==3.23.0",
-    "biopython==1.84",
+    "biopython==1.84.0",
     "MDAnalysis==2.7.0",
     "numpy==1.26.4",
     "pandas==2.2.2",
-    "plotly==5.22.0",
-    "pyKVFinder==0.6.14",
+    "plotly==5.23.0",
+    "pyKVFinder==0.6.15",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["black==24.4.2", "flake8==7.0.0", "pytest==8.2.2"]
-docs = ["sphinx==7.3.7", "sphinx-rtd-theme==2.0.0"]
+dev = ["black==24.4.2", "flake8==7.1.0", "pytest==8.2.2"]
+docs = ["sphinx==8.0.2", "sphinx-rtd-theme==2.0.0"]
 
 [project.urls]
 api = "https://cnpem.github.io/AtomPacker/"

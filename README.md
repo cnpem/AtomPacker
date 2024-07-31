@@ -91,7 +91,8 @@ class Cage {
 + pack(str lattice_type, str atom_type, float atom_radius, float a, float b, float c) ase.cluster.Cluster
 + preview(bool show_cavity, bool show_cluster, str renderer, Dict~str,Any~ **kwargs) void
 # _build_cluster(str atom_type, str lattice_type, Tuple~float~ lattice_constants, numpy.ndarray center) ase.cluster.Cluster
-# _filter_cluster(ase.cluster.Cluster cluster) ase.cluster.Cluster
+# _filter_clashing_atoms(ase.cluster.Cluster cluster, float clashing_tolerance) ase.cluster.Cluster
+# _filter_outside_cavity(ase.cluster.Cluster cluster) ase.cluster.Cluster
 # _get_cluster_layers(str atom_type, float factor) numpy.ndarray            
 }
 class Cavity {
@@ -140,7 +141,7 @@ If you find `AtomPacker` useful for you, please cite the following references:
 
 - Guerra, J. V. S., Ribeiro-Filho, H. V., Jara, G. E., Bortot, L. O., Pereira, J. G. C., & Lopes-de-Oliveira, P. S. (2021). pyKVFinder: an efficient and integrable Python package for biomolecular cavity detection and characterization in data science. BMC bioinformatics, 22(1), 607. https://doi.org/10.1186/s12859-021-04519-4.
 
-- Manuscript in preparation.
+- (manuscript in preparation) Guerra, J. V. S., Jara, G. E., Lopes-de-Oliveira, P. S. & Szalóki, G. (2024) Modellization of confined nanoparticles.
 
 ## License
 

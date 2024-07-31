@@ -1,4 +1,4 @@
-# This source code is part of the pyKVFinder package and is distributed
+# This source code is part of the AtomPacker package and is distributed
 # under the GNU GPL-3.0 license. Please see 'LICENSE' for further
 # information.
 
@@ -9,7 +9,7 @@ molecular structures, packing nanoclusters into these cavities, and exporting \
 the resulting structures.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 __name__ = "AtomPacker"
 license = "GNU GPL-3.0 License"
 
