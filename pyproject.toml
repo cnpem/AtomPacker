@@ -36,7 +36,7 @@ dependencies = [
     "ase==3.23.0",
     "biopython==1.84.0",
     "MDAnalysis==2.7.0",
-    "numpy~=1.26.4",
+    "numpy>=1.26.4,<2.2.0",
     "pandas~=2.2.3",
     "plotly~=5.24.1",
     "pyKVFinder==0.7.0",
