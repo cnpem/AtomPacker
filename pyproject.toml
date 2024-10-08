@@ -45,7 +45,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["black==24.8.0", "flake8==7.1.1", "pytest==8.3.3"]
-docs = ["sphinx==7.3.7", "sphinx-rtd-theme==2.0.0"]
+docs = ["sphinx==7.3.7", "sphinx-rtd-theme==3.0.0"]
 
 [project.urls]
 api = "https://cnpem.github.io/AtomPacker/"
