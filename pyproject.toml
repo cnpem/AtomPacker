@@ -25,6 +25,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     'Operating System :: Microsoft :: Windows',
     'Operating System :: Unix',
@@ -36,16 +37,16 @@ dependencies = [
     "ase==3.23.0",
     "biopython==1.84.0",
     "MDAnalysis==2.7.0",
-    "numpy~=1.26.4",
+    "numpy",
     "pandas~=2.2.3",
-    "plotly~=5.24.1",
+    "plotly",
     "pyKVFinder==0.7.0",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["black==24.8.0", "flake8==7.1.1", "pytest==8.3.3"]
-docs = ["sphinx==7.3.7", "sphinx-rtd-theme==2.0.0"]
+docs = ["sphinx==8.1.0", "sphinx-rtd-theme==3.0.1"]
 
 [project.urls]
 api = "https://cnpem.github.io/AtomPacker/"
