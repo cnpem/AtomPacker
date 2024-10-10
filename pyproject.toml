@@ -49,8 +49,8 @@ dev = ["black==24.10.0", "flake8==7.1.1", "pytest==8.3.3"]
 docs = ["sphinx==8.1.0", "sphinx-rtd-theme==3.0.1"]
 
 [project.urls]
-api = "https://cnpem.github.io/AtomPacker/"
 homepage = "https://github.com/cnpem/AtomPacker"
+documentation = "https://cnpem.github.io/AtomPacker/"
 issues = "https://github.com/cnpem/AtomPacker/issues"
 
 [tool.setuptools]
