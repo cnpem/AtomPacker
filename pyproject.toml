@@ -40,7 +40,7 @@ dependencies = [
     "numpy",
     "pandas~=2.2.3",
     "plotly",
-    "pyKVFinder==0.7.0",
+    "pyKVFinder>=0.7,<0.8",
 ]
 dynamic = ["version"]
 
