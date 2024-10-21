@@ -72,12 +72,12 @@ class Cluster:
 
     def diameter(self, method: str = "maximum") -> float:
         """
-        Calculate the diameter of the cluster.
+        Calculate the diameter (Å) of the cluster.
 
         Parameters
         ----------
         method : str, optional
-            The method to use for calculating the diameter of the cluster.
+            The method to use for calculating the diameter (Å) of the cluster.
             Supported methods are 'maximum' (default), 'shape', and 'volume'.
 
             * 'maximum': calculates the maximum distance between any two \
@@ -94,7 +94,7 @@ class Cluster:
         Returns
         -------
         float
-            The diameter of the cluster.
+            The diameter of the cluster in Å.
         """
         # Calculate distances between atoms
         if method == "maximum":
@@ -216,9 +216,9 @@ class Cluster:
                 "Atom Type": self.atom_type,
                 "Atom Radius": self._get_radii(),
                 "Cavity Volume (Å³)": self._cavity.volume,
-                "Diameter (maximum)": self.diameter(method="maximum"),
-                "Diameter (shape)": self.diameter(method="shape"),
-                "Diameter (volume)": self.diameter(method="volume"),
+                "Diameter (maximum) (Å)": self.diameter(method="maximum"),
+                "Diameter (shape) (Å)": self.diameter(method="shape"),
+                "Diameter (volume) (Å)": self.diameter(method="volume"),
                 "Lattice Constants": self.lattice_constants,
                 "Lattice Type": self.lattice_type,
                 "Maximum Number of Atoms": self.maximum_number_of_atoms,
