@@ -40,7 +40,15 @@ TESTMOLECULES = [
     # Pd: FCC a: 3.8901 Å
     ["Phos-cage.mol2", "Pd", "fcc", 3.8901, None, None, (0.6, 1.4, 12, 1.8, 5)],
     # Pd: FCC a: 3.8901 Å
-    ["Phos-cage-decamer.mol2", "Pd", "fcc", 3.8901, None, None, (0.6, 2.3, 12.0, 2.4, 200.0)],
+    [
+        "Phos-cage-decamer.mol2",
+        "Pd",
+        "fcc",
+        3.8901,
+        None,
+        None,
+        (0.6, 2.3, 12.0, 2.4, 200.0),
+    ],
     # Pd: FCC a: 3.8901 Å
     ["MTC1.mol2", "Pd", "fcc", 3.8901, None, None, (0.6, 1.4, 12, 2.4, 200)],
     # Pt: FCC a: 3.9233 Å
@@ -51,15 +59,15 @@ TESTMOLECULES = [
 
 
 # %%
-print(TESTMOLECULES[1])
-smc_file, atom_type, lattice_type,  a, b, c, (s, pi, po, rd, vc) = TESTMOLECULES[1]
-print(smc_file, atom_type, lattice_type,  a, b, c, (s, pi, po, rd, vc))
+print(TESTMOLECULES[2])
+smc_file, atom_type, lattice_type, a, b, c, (s, pi, po, rd, vc) = TESTMOLECULES[2]
+print(smc_file, atom_type, lattice_type, a, b, c, (s, pi, po, rd, vc))
 
 # Create a DataFrame to store the results
 summary = pandas.DataFrame()
 
 # Get cage name and
-cage_name = os.path.basename(smc_file).split('.')[0]
+cage_name = os.path.basename(smc_file).split(".")[0]
 
 # Create basedir to store the results
 if not os.path.exists(os.path.join("results", cage_name)):
@@ -83,29 +91,69 @@ cage.detect_cavity(
     volume_cutoff=vc,
 )
 
-# Step 3: Pack atoms
+# Step 3: Pack atoms (No optimization)
 cage.pack(
     atom_type=atom_type,
     lattice_type=lattice_type,
     a=a,
     b=b,
     c=c,
-    clashing_tolerance=0.3,
-    optimize=True,
+    clashing_tolerance=0.0,
+    optimize=False,
 )
 
+# %%
+
+# Step 3.1: Get cluster paramters
+from ase.cluster.cubic import FaceCenteredCubic
+
+surfaces = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+layers = cage._get_cluster_layers("Pd", 0.5)
+
+# Step 3.2 Build raw cluster
+cluster = FaceCenteredCubic(
+    symbols=atom_type,
+    surfaces=surfaces,
+    layers=layers,
+    latticeconstant=a,
+)
+
+# Step 3.3: Move cluster to centroid of cage
+cluster.positions += cage.centroid
+
+# Step 3.4: Save raw cluster
+cluster.write("raw-cluster.pdb")
+
+# Step 3.5: Filter atoms outside the cavity
+f1 = cage._filter_outside_cavity(cluster)
+f1.write("filtered-cluster-1.pdb")
+
+# %%
+
+# Step 3.6: Filter atoms clashing with cage
+f2 = cage._filter_clashing_atoms(cluster)  # -> Not working properly
+f2.write("filtered-cluster-2.pdb")
+# %%
+import numpy
+
+cluster_distances = numpy.linalg.norm(
+    cluster.positions[:, numpy.newaxis, :] - cluster.positions[numpy.newaxis, :, :],
+    axis=-1,
+)
+radius = (cluster_distances[cluster_distances > 0] / 2).min()
+cluster_radii = numpy.full(len(cluster), radius)
+limits = cluster_radii[:, numpy.newaxis] + cage.universe.atoms.radii
+
+# %%
+
 # Save experiment conditions
-exp = f"{atom_type}({lattice_type}-{cage.cluster.lattice_constants})@{cage_name}".strip(" ")
+exp = f"{atom_type}({lattice_type}-{cage.cluster.lattice_constants})@{cage_name}".strip(
+    " "
+)
 
 # Step 4: Save cavity and packed atoms
 cage.cavity.save(f"results/{cage_name}/cavity.pdb")
-cage.cluster.save(
-    os.path.join(
-        "results", 
-        cage_name, 
-        f"{exp}.pdb"
-    )
-)
+cage.cluster.save(os.path.join("results", cage_name, f"{exp}.pdb"))
 
 # Step 5: Save summary
 summary = pandas.concat([summary, cage.cluster.summary], axis=1)
