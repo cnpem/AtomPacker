@@ -50,7 +50,7 @@ TESTMOLECULES = [
         (0.6, 2.3, 12.0, 2.4, 200.0),
     ],
     # Pd: FCC a: 3.8901 Å
-    ["MTC1.mol2", "Pd", "fcc", 3.8901, None, None, (0.6, 1.4, 12, 2.4, 200)],
+    ["MTC1.mol2", "Pd", "sc", 2.78, None, None, (0.6, 1.4, 12, 2.4, 200)],
     # Pt: FCC a: 3.9233 Å
     ["Cu-MOC.mol2", "Pt", "fcc", 3.9233, None, None, (0.6, 1.4, 12, 3.6, 200)],
     # Ru: HCP a: 2.7053 Å, c: 4.2814 Å
@@ -102,6 +102,26 @@ cage.pack(
     optimize=False,
 )
 
+# Save experiment conditions
+exp = f"{atom_type}({lattice_type}-{cage.cluster.lattice_constants})@{cage_name}".strip(
+    " "
+)
+
+# Step 4: Save cavity and packed atoms
+cage.cavity.save(f"results/{cage_name}/cavity.pdb")
+cage.cluster.save(os.path.join("results", cage_name, f"{exp}.pdb"))
+
+# Step 5: Save summary
+summary = pandas.concat([summary, cage.cluster.summary], axis=1)
+
+# Change column names to reflect the experiment conditions
+summary.columns = [exp]
+
+# Save summary to file
+summary.to_csv("results/summary.csv")
+
+display(summary)
+
 # %%
 
 # Step 3.1: Get cluster paramters
@@ -128,10 +148,8 @@ cluster.write("raw-cluster.pdb")
 f1 = cage._filter_outside_cavity(cluster)
 f1.write("filtered-cluster-1.pdb")
 
-# %%
-
 # Step 3.6: Filter atoms clashing with cage
-f2 = cage._filter_clashing_atoms(cluster)  # -> Not working properly
+f2 = cage._filter_clashing_atoms(cluster)
 f2.write("filtered-cluster-2.pdb")
 # %%
 import numpy
@@ -143,26 +161,3 @@ cluster_distances = numpy.linalg.norm(
 radius = (cluster_distances[cluster_distances > 0] / 2).min()
 cluster_radii = numpy.full(len(cluster), radius)
 limits = cluster_radii[:, numpy.newaxis] + cage.universe.atoms.radii
-
-# %%
-
-# Save experiment conditions
-exp = f"{atom_type}({lattice_type}-{cage.cluster.lattice_constants})@{cage_name}".strip(
-    " "
-)
-
-# Step 4: Save cavity and packed atoms
-cage.cavity.save(f"results/{cage_name}/cavity.pdb")
-cage.cluster.save(os.path.join("results", cage_name, f"{exp}.pdb"))
-
-# Step 5: Save summary
-summary = pandas.concat([summary, cage.cluster.summary], axis=1)
-
-# Change column names to reflect the experiment conditions
-summary.columns = [exp]
-
-# Save summary to file
-summary.to_csv("results/summary.csv")
-
-display(summary)
-# %%
