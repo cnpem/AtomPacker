@@ -11,8 +11,8 @@ the atoms of the structure.
 """
 
 import itertools
-import os
 import logging
+import os
 import warnings
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
@@ -31,7 +31,7 @@ from .Cluster import Cluster
 from .data import get_lattice_constants
 
 
-class Cage:
+class Cage(object):
     """
     A container for the atoms of a macromolecular structure.
 
@@ -174,7 +174,7 @@ analysis."
         if self.cluster is not None:
             self.cluster = None
 
-    def load(self, filename: str) -> None:
+    def load(self, filename: str, vdw: Optional[Dict[str, float]] = None) -> None:
         """
         Load a supramolecular cage structure file into the :class:`MDAnalysis
         .Univese` object.
@@ -184,6 +184,10 @@ analysis."
         filename : str
             The filename of the structure file. The file format is determined
             by the suffix.  Supported formats are: .cif, .mol2, .pdb, .xyz.
+        vdw : Dict[str, float], optional
+            A dictionary containing the van der Waals radii for each atom type,
+            by default None. If None, the van der Waals radii are looked up
+            from the `pyKVFinder` package.
 
         Returns
         -------
@@ -201,13 +205,13 @@ analysis."
         # Match the suffix to the appropriate file format
         match suffix:
             case ".cif":
-                self.universe = load_mmcif(filename)
+                self.universe = load_mmcif(filename, vdw)
             case ".mol2":
-                self.universe = load_mol2(filename)
+                self.universe = load_mol2(filename, vdw)
             case ".pdb":
-                self.universe = load_pdb(filename)
+                self.universe = load_pdb(filename, vdw)
             case ".xyz":
-                self.universe = load_xyz(filename)
+                self.universe = load_xyz(filename, vdw)
             case _:
                 raise ValueError(
                     f"Unsupported file format: {suffix}. Supported formats \

@@ -10,6 +10,7 @@ __all__ = ["load_mol2"]
 
 import warnings
 from string import digits
+from typing import Dict, Optional
 
 from MDAnalysis import Universe
 
@@ -19,7 +20,7 @@ from ..vdw import _lookup_radii
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-def load_mol2(filename: str) -> Universe:
+def load_mol2(filename: str, vdw: Optional[Dict[str, float]] = None) -> Universe:
     """
     Load a MOL2 file into the :class:`MDAnalysis.Univese` object.
 
@@ -27,6 +28,10 @@ def load_mol2(filename: str) -> Universe:
     ----------
     filename : str
         The filename of the structure file.
+    vdw : Dict[str, float]
+        A dictionary containing the van der Waals radii for each atom type,
+        by default None. If None, the radii will be looked up from the
+        `pyKVFinder` package.
 
     Returns
     -------
@@ -57,7 +62,7 @@ def load_mol2(filename: str) -> Universe:
     # Add radii to topology
     universe.add_TopologyAttr(
         "radii",
-        _lookup_radii(universe.atoms.elements),
+        _lookup_radii(universe.atoms.elements, vdw),
     )
 
     return universe

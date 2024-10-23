@@ -13,7 +13,7 @@ the lattice constants for a given atom type and lattice type.
 
 __all__ = ["get_lattice_constants", "lattice_constants"]
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 from warnings import warn
 
 

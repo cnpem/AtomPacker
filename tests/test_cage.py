@@ -10,7 +10,7 @@ from MDAnalysis import Universe
 from AtomPacker import Cage, Cavity, Cluster
 from AtomPacker.core.io.vdw.file import read_vdw
 
-DATADIR = os.path.join(os.path.abspath(os.path.dirname(__file__)),  "data")
+DATADIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data")
 
 
 # Define a fixture for different cage file formats
@@ -62,6 +62,18 @@ def test_inexistent_file():
     cage = Cage()
     with pytest.raises(FileNotFoundError):
         cage.load("inexistent_file.pdb")
+
+
+def test_custom_vdw(pdb):
+    cage = Cage()
+    cage.load(pdb, vdw={"H": 0.91, "C": 1.66, "Si": 2.1, "O": 1.69})
+    assert isinstance(cage.universe, Universe)
+
+
+def test_custom_vdw_with_missing_atom(pdb):
+    cage = Cage()
+    with pytest.raises(ValueError):
+        cage.load(pdb, vdw={"H": 0.91, "C": 1.66, "Si": 2.1})
 
 
 def test_atomic(pdb):
