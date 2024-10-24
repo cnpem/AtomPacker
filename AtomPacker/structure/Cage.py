@@ -531,6 +531,14 @@ first."
         # Translate the cluster to the center
         cluster.positions += center
 
+        # Get radii for nanocluster
+        distances = cluster.get_all_distances()
+        radii = (distances[distances > 0] / 2).min()
+        cluster.info.update({"radii": radii})
+
+        # Get lattice constants for nanocluster
+        cluster.info.update({"lattice_constants": lattice_constants})
+
         if optimize:
             # Create rotation angles and translations for the cluster
             if angles is None:

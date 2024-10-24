@@ -11,12 +11,11 @@ cluster properties, and exporting cavity data.
 """
 
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Dict
 
 import ase
 import numpy
 import pandas
-from ase.data import atomic_numbers, covalent_radii
 from MDAnalysis import Universe
 from plotly.express import scatter_3d
 
@@ -53,7 +52,8 @@ class Cluster:
         # Cluster information
         self.atom_type = cluster.get_chemical_symbols()[0]
         self.lattice_type = cluster.symmetry
-        self.lattice_constants = self._get_lattice_constants()
+        self.lattice_constants = cluster.info.get("lattice_constants")
+        self.radii = cluster.info.get("radii")
 
         # Atomic information: MDAnalysis Universe
         self.universe = self._get_universe()
@@ -214,7 +214,7 @@ class Cluster:
         return pandas.DataFrame.from_dict(
             {
                 "Atom Type": self.atom_type,
-                "Atom Radius": self._get_radii(),
+                "Atom Radius": self.radii,
                 "Cavity Volume (Å³)": self._cavity.volume,
                 "Diameter (maximum)": self.diameter(method="maximum"),
                 "Diameter (shape)": self.diameter(method="shape"),
@@ -239,55 +239,7 @@ class Cluster:
             cluster.
         """
         # Calculate distances between atoms
-        distances = numpy.linalg.norm(
-            self._cluster.positions[:, numpy.newaxis, :]
-            - self._cluster.positions[numpy.newaxis, :, :],
-            axis=-1,
-        )
-
-        return distances
-
-    def _get_lattice_constants(
-        self,
-    ) -> Tuple[float, float, float] | Tuple[float, float] | float:
-        """
-        Get the lattice constants of the cluster.
-
-        Returns
-        -------
-        Tuple[float, float, float] | Tuple[float, float] | float
-            The lattice constants of the cluster.
-        """
-        if self.lattice_type == "hcp":
-            return (
-                self._cluster.lattice_basis[0, 0],
-                self._cluster.lattice_basis[2, 2],
-            )
-        elif self.lattice_type == "fcc":
-            return self._cluster.lattice_basis[0, 0]
-        elif self.lattice_type == "bcc":
-            return self._cluster.lattice_basis[0, 0]
-        elif self.lattice_type == "sc":
-            return self._cluster.lattice_basis[0, 0]
-
-    def _get_radii(self) -> float:
-        """
-        Get the radius of the atoms in the cluster.
-
-        Returns
-        -------
-        float
-            The radius of the atoms in the cluster.
-        """
-        if len(self._cluster) > 1:
-            # Calculate distances between atoms
-            distances = self._get_distances()
-            # Calculate radii, ignoring self-distances
-            radii = (distances[distances > 0] / 2).min()
-        else:
-            radii = covalent_radii[atomic_numbers[self._cluster.get_chemical_formula()]]
-
-        return radii
+        return self._cluster.get_all_distances()
 
     def _get_universe(self) -> Universe:
         """
@@ -322,7 +274,7 @@ class Cluster:
         )  # atom type
         universe.add_TopologyAttr(
             "radii",
-            [self._get_radii()] * universe.atoms.n_atoms,  # atom radius
+            [self.radii] * universe.atoms.n_atoms,  # atom radius
         )
         universe.add_TopologyAttr("resids", [1])  # resids
         universe.add_TopologyAttr("resnums", [1])  # resnums

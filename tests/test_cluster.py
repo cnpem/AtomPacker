@@ -5,7 +5,6 @@ import pytest
 
 from AtomPacker import Cage, Cavity, Cluster
 from ase.cluster import FaceCenteredCubic
-from ase.data import atomic_numbers, covalent_radii
 
 DATADIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data")
 
@@ -46,41 +45,24 @@ def cavity(grid, vertices):
     )
 
 
-@pytest.fixture  # 1 atom
-def atom():
-    return FaceCenteredCubic(
-        symbols="Au",
-        surfaces=[(1, 0, 0), (0, 1, 0), (0, 0, 1)],
-        layers=[0, 0, 0],
-        latticeconstant=4.08,
-    )
-
-
 @pytest.fixture  # 13 atoms
 def cluster():
-    return FaceCenteredCubic(
+    _cluster = FaceCenteredCubic(
         symbols="Au",
         surfaces=[(1, 0, 0), (0, 1, 0), (0, 0, 1)],
         layers=[1, 1, 1],
         latticeconstant=4.08,
     )
+    # Add radius to ase.cluster
+    distances = _cluster.get_all_distances()
+    radii = (distances[distances > 0] / 2).min()
+    _cluster.info.update({"radii": radii})
+    # Add lattice_constants to ase.cluster
+    _cluster.info.update({"lattice_constants": 4.08})
+    return _cluster
 
 
-def test_one_atom_cluster_distances(pdb, cavity, atom):
-    cage = Cage()
-    cage.load(pdb)
-
-    # Dummy Cavity
-    cage.cavity = cavity
-
-    # Dummy Cluster
-    cage.cluster = Cluster(atom, cavity)
-
-    # Check distances for one-atom cluster
-    assert cage.cluster._get_distances() == numpy.array([0])
-
-
-def test_multi_atom_cluster_distances(pdb, cavity, cluster):
+def test_cluster_distances(pdb, cavity, cluster):
     cage = Cage()
     cage.load(pdb)
 
@@ -92,25 +74,11 @@ def test_multi_atom_cluster_distances(pdb, cavity, cluster):
 
     # Check distances for multi-atom cluster
     assert (
-        cage.cluster._cluster.get_all_distances() == cage.cluster._get_distances()
+        cage.cluster._get_distances() == cage.cluster._cluster.get_all_distances()
     ).all()
 
 
-def test_one_atom_cluster_radii(pdb, cavity, atom):
-    cage = Cage()
-    cage.load(pdb)
-
-    # Dummy Cavity
-    cage.cavity = cavity
-
-    # Dummy Cluster
-    cage.cluster = Cluster(atom, cavity)
-
-    # Check radii for one-atom cluster
-    assert cage.cluster._get_radii() == [covalent_radii[atomic_numbers["Au"]]]
-
-
-def test_multi_atom_cluster_radii(pdb, cavity, cluster):
+def test_cluster_radii(pdb, cavity, cluster):
     cage = Cage()
     cage.load(pdb)
 
@@ -125,24 +93,10 @@ def test_multi_atom_cluster_radii(pdb, cavity, cluster):
     radii = distances[distances > 0].min() / 2
 
     # Check radii for multi-atom cluster
-    assert cage.cluster._get_radii() == radii
+    assert cage.cluster.radii == radii
 
 
-def test_one_atom_cluster_coordinates(pdb, cavity, atom):
-    cage = Cage()
-    cage.load(pdb)
-
-    # Dummy Cavity
-    cage.cavity = cavity
-
-    # Dummy Cluster
-    cage.cluster = Cluster(atom, cavity)
-
-    # Check coordinates
-    assert (cage.cluster.coordinates == numpy.array([0, 0, 0])).all()
-
-
-def test_multi_atom_cluster_coordinates(pdb, cavity, cluster):
+def test_cluster_coordinates(pdb, cavity, cluster):
     cage = Cage()
     cage.load(pdb)
 
@@ -165,26 +119,13 @@ def test_cluster_lattice_constants(pdb, cavity, cluster):
 
     # Dummy Cluster
     cage.cluster = Cluster(cluster, cavity)
+    print(cage.cluster.lattice_constants)
 
     # Check lattice constants
-    assert (cage.cluster.lattice_constants == 4.08).all()
+    assert cage.cluster.lattice_constants == 4.08
 
 
-def test_one_atom_cluster_number_of_atoms(pdb, cavity, atom):
-    cage = Cage()
-    cage.load(pdb)
-
-    # Dummy Cavity
-    cage.cavity = cavity
-
-    # Dummy Cluster
-    cage.cluster = Cluster(atom, cavity)
-
-    # Check number of atoms
-    assert cage.cluster.number_of_atoms == 1
-
-
-def test_multi_atom_cluster_number_of_atoms(pdb, cavity, cluster):
+def test_cluster_number_of_atoms(pdb, cavity, cluster):
     cage = Cage()
     cage.load(pdb)
 
@@ -198,28 +139,7 @@ def test_multi_atom_cluster_number_of_atoms(pdb, cavity, cluster):
     assert cage.cluster.number_of_atoms == 13
 
 
-def test_one_atom_cluster_maximum_number_of_atoms(pdb, cavity, atom):
-    cage = Cage()
-    cage.load(pdb)
-
-    # Dummy Cavity
-    cage.cavity = cavity
-
-    # Dummy Cluster
-    cage.cluster = Cluster(atom, cavity)
-
-    # Get maximum number of atoms
-    maximum_number_of_atoms = numpy.ceil(
-        numpy.prod(cage.cavity.grid.shape)
-        * 0.6**3
-        / (4 / 3 * numpy.pi * (cage.cluster._get_radii() ** 3)),
-    ).astype(int)
-
-    # Check maximum number of atoms
-    assert cage.cluster.maximum_number_of_atoms == maximum_number_of_atoms
-
-
-def test_multi_atom_cluster_maximum_number_of_atoms(pdb, cavity, cluster):
+def test_cluster_maximum_number_of_atoms(pdb, cavity, cluster):
     cage = Cage()
     cage.load(pdb)
 
@@ -233,7 +153,7 @@ def test_multi_atom_cluster_maximum_number_of_atoms(pdb, cavity, cluster):
     maximum_number_of_atoms = numpy.ceil(
         numpy.prod(cage.cavity.grid.shape)
         * 0.6**3
-        / (4 / 3 * numpy.pi * (cage.cluster._get_radii() ** 3)),
+        / (4 / 3 * numpy.pi * (cage.cluster.radii**3)),
     ).astype(int)
 
     # Check maximum number of atoms

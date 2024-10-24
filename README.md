@@ -49,7 +49,7 @@ Packing nanoparticle atoms, based on ASE nanocluster, and filter atoms inside a 
 # Uncomment to preview the cage structure.
 >>> # cage.preview()
 # 2: Detect cavity
->>> cage.detect_cavity(step=0.25, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0)
+>>> cage.detect_cavity(step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0)
 # Uncomment to preview the cavity structure for detection quality control.
 >>> # cage.cavity.preview()
 # Show volume
@@ -123,13 +123,11 @@ class Cluster {
 + Universe universe
 + numpy.ndarray volume
 # Cavity cavity
-# ase.cluster.Cluster cluster
+# ase.cluster.Cluster _cluster
 + diameter(str method) float
 + preview(str renderer, float opacity, Dict~str,Any~ **kwargs) void
 + save(str filename) void
 # _get_distances() numpy.ndarray
-# _get_lattice_constants() Tuple~float~
-# _get_radii() float
 # _get_universe() Universe  
 }
 }
