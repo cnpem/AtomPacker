@@ -46,5 +46,7 @@ def _lookup_radii(
     elif isinstance(vdw, dict):
         # Check if all elements are provided in vdw
         if not all([name in vdw for name in names]):
-            raise ValueError("Not all elements are provided in the `vdw` dictionary.")
+            raise ValueError(
+                f"Missing atoms in `vdw` dictionary: {set(names) - set(vdw.keys())}"
+            )
         return numpy.vectorize(lambda x: vdw[x])(names)
