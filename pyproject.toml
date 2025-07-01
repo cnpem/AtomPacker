@@ -46,7 +46,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["black==25.1.0", "flake8==7.1.1", "pytest==8.3.4"]
+dev = ["black==25.1.0", "flake8==7.1.1", "pytest==8.4.1"]
 docs = ["sphinx==8.2.3", "sphinx-rtd-theme==3.0.2"]
 
 [project.urls]
