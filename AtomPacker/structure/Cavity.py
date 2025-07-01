@@ -126,22 +126,22 @@ class Cavity:
                     xaxis=dict(
                         showticklabels=False,
                         range=[
-                            (x.min() - factor * x.ptp()),
-                            (x.max() + factor * x.ptp()),
+                            (x.min() - factor * numpy.ptp(x)),
+                            (x.max() + factor * numpy.ptp(x)),
                         ],
                     ),
                     yaxis=dict(
                         showticklabels=False,
                         range=[
-                            (y.min() - factor * y.ptp()),
-                            (y.max() + factor * y.ptp()),
+                            (y.min() - factor * numpy.ptp(y)),
+                            (y.max() + factor * numpy.ptp(y)),
                         ],
                     ),
                     zaxis=dict(
                         showticklabels=False,
                         range=[
-                            (z.min() - factor * z.ptp()),
-                            (z.max() + factor * z.ptp()),
+                            (z.min() - factor * numpy.ptp(z)),
+                            (z.max() + factor * numpy.ptp(z)),
                         ],
                     ),
                 )

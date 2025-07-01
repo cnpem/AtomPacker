@@ -429,15 +429,15 @@ first."
             scene=dict(
                 xaxis=dict(
                     showticklabels=False,
-                    range=[(x.min() - factor * x.ptp()), (x.max() + factor * x.ptp())],
+                    range=[(x.min() - factor * numpy.ptp(x)), (x.max() + factor * numpy.ptp(x))],
                 ),
                 yaxis=dict(
                     showticklabels=False,
-                    range=[(y.min() - factor * y.ptp()), (y.max() + factor * y.ptp())],
+                    range=[(y.min() - factor * numpy.ptp(y)), (y.max() + factor * numpy.ptp(y))],
                 ),
                 zaxis=dict(
                     showticklabels=False,
-                    range=[(z.min() - factor * z.ptp()), (z.max() + factor * z.ptp())],
+                    range=[(z.min() - factor * numpy.ptp(z)), (z.max() + factor * numpy.ptp(z))],
                 ),
             )
         )
@@ -771,7 +771,7 @@ Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f}
         obb_axes = pca.components_
 
         # Calculate the extents of the OBB
-        obb_extents = pca.transform(self.coordinates).ptp(axis=0)
+        obb_extents = numpy.ptp(pca.transform(self.coordinates), axis=0)
 
         return obb_axes, obb_extents
 
