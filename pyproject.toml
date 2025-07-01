@@ -35,13 +35,13 @@ classifiers = [
 ]
 dependencies = [
     "ase==3.25.0",
-    "biopython==1.85.0",
-    "MDAnalysis==2.9.0",
-    "numpy>=2.2.6",
+    "biopython>=1.85.0",
+    "MDAnalysis>=2.9.0",
+    "numpy>=2.3.0",
     "pandas>=2.3.0",
     "plotly>=6.0.0",
     "pyKVFinder>=0.8.0",
-    "scikit-learn>=1.5.1",
+    "scikit-learn>=1.7.0",
 ]
 dynamic = ["version"]
 
