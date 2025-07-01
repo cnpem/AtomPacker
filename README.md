@@ -22,6 +22,7 @@ See also:
 - [numpy](https://pypi.org/project/numpy)
 - [plotly](https://pypi.org/project/plotly)
 - [pyKVFinder](https://pypi.org/project/pyKVFinder)
+- [scikit-learn](https://pypi.org/project/scikit-learn)
 
 ## Installation
 
