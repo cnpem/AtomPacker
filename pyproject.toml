@@ -39,7 +39,7 @@ dependencies = [
     "MDAnalysis==2.8.0",
     "numpy>=2.2.6",
     "pandas>=2.3.0",
-    "plotly>=6.2.0",
+    "plotly>=6.0.0",
     "pyKVFinder>=0.8.0",
     "scikit-learn>=1.5.1",
 ]
