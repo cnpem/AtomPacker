@@ -24,6 +24,7 @@ from ase.cluster.hexagonal import HexagonalClosedPacked
 from ase.data import atomic_numbers, covalent_radii
 from plotly.express import scatter_3d
 from pyKVFinder import detect, get_vertices
+from sklearn.decomposition import PCA
 
 from ..core import load_mmcif, load_mol2, load_pdb, load_xyz
 from .Cavity import Cavity
@@ -428,15 +429,15 @@ first."
             scene=dict(
                 xaxis=dict(
                     showticklabels=False,
-                    range=[(x.min() - factor * x.ptp()), (x.max() + factor * x.ptp())],
+                    range=[(x.min() - factor * numpy.ptp(x)), (x.max() + factor * numpy.ptp(x))],
                 ),
                 yaxis=dict(
                     showticklabels=False,
-                    range=[(y.min() - factor * y.ptp()), (y.max() + factor * y.ptp())],
+                    range=[(y.min() - factor * numpy.ptp(y)), (y.max() + factor * numpy.ptp(y))],
                 ),
                 zaxis=dict(
                     showticklabels=False,
-                    range=[(z.min() - factor * z.ptp()), (z.max() + factor * z.ptp())],
+                    range=[(z.min() - factor * numpy.ptp(z)), (z.max() + factor * numpy.ptp(z))],
                 ),
             )
         )
@@ -493,9 +494,12 @@ first."
         # Create dummy surfaces
         surfaces = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
 
+        # Create Oriented Bounding Box (OBB) for the cage
+        obb_axes, obb_extents = self._get_obb()
+
         # Based on surfaces=[(1, 0, 0), (0, 1, 0), (0, 0, 1)], get layers
-        # for from cage coordinates
-        layers = self._get_cluster_layers(atom_type, factor=0.2)
+        # for from obb extents
+        layers = self._get_cluster_layers(atom_type, obb_extents, factor=0.2)
 
         # Create cluster from `ase.cluster` module
         match lattice_type:
@@ -528,7 +532,10 @@ first."
                     latticeconstant=lattice_constants,
                 )
 
-        # Translate the cluster to the center
+        # Rotate the cluster to align with the OBB's orientation
+        cluster.set_positions(numpy.dot(cluster.positions, obb_axes))
+
+        # Translate the cluster to the center (cage centroid)
         cluster.positions += center
 
         # Get radii for nanocluster
@@ -634,16 +641,7 @@ Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f}
         # If cluster has more than one atom, get the minimum distance between
         # atoms and use it as the radius of the cluster atom. If cluster has
         # only one atom, get the van der Waals radius of the atom.
-        cluster_distances = numpy.linalg.norm(
-            cluster.positions[:, numpy.newaxis, :]
-            - cluster.positions[numpy.newaxis, :, :],
-            axis=-1,
-        )
-        if len(cluster) > 1:
-            radius = (cluster_distances[cluster_distances > 0] / 2).min()
-        else:
-            radius = covalent_radii[atomic_numbers[cluster.get_chemical_formula()]]
-        cluster_radii = numpy.full(len(cluster), radius)
+        cluster_radii = numpy.full(len(cluster), cluster.info.get("radii"))
 
         # Get internal limits between cluster atoms and cage atoms
         # (cluster atom radius + cage atom radius)
@@ -722,12 +720,18 @@ Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f}
 
         return cluster
 
-    def _get_cluster_layers(self, atom_type: str, factor: float = 0.2) -> numpy.ndarray:
+    def _get_cluster_layers(
+        self, atom_type: str, obb_extents: numpy.ndarray, factor: float = 0.2
+    ) -> numpy.ndarray:
         """
         Get the number of layers for the cluster.
 
         Parameters
         ----------
+        atom_type : str
+            The type of atom in the cluster.
+        obb_extents : numpy.ndarray
+            The extents of the Oriented Bounding Box (OBB).
         factor : float, optional
             The factor to multiply the number of layers, by default 0.2.
 
@@ -736,20 +740,40 @@ Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f}
         numpy.ndarray
             The number of layers for the cluster.
         """
-        # Get the length of the xyz coordinates of the cage
-        lengths = self.coordinates.ptp(axis=0)
-
         # Add factor to lengths
-        lengths += lengths * factor
+        obb_extents += obb_extents * factor
 
         # Get van der Waals radii of atom
         atomic_number = atomic_numbers[atom_type]
         atom_size = covalent_radii[atomic_number] * 2
 
         # Get number of layers
-        layers = numpy.ceil(lengths / atom_size).astype(int)
+        layers = numpy.ceil(obb_extents / atom_size).astype(int)
 
         return layers
+
+    def _get_obb(self) -> Tuple[numpy.ndarray, numpy.ndarray]:
+        """
+        Get the Oriented Bounding Box (OBB) of the cage structure.
+
+        Returns
+        -------
+        numpy.ndarray
+            The axes of the OBB.
+        numpy.ndarray
+            The extents of the OBB.
+        """
+        # Compute the PCA to get the principal axes
+        pca = PCA(n_components=3)
+        pca.fit(self.coordinates)
+
+        # Principal axes (directions of the OBB)
+        obb_axes = pca.components_
+
+        # Calculate the extents of the OBB
+        obb_extents = numpy.ptp(pca.transform(self.coordinates), axis=0)
+
+        return obb_axes, obb_extents
 
     @property
     def atomic(self) -> numpy.ndarray:

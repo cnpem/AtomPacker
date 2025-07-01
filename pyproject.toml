@@ -34,19 +34,20 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = [
-    "ase==3.23.0",
-    "biopython==1.84.0",
-    "MDAnalysis==2.7.0",
-    "numpy",
-    "pandas~=2.2.3",
-    "plotly",
-    "pyKVFinder>=0.7,<0.8",
+    "ase==3.24.0",
+    "biopython==1.85.0",
+    "MDAnalysis==2.8.0",
+    "numpy>=2.2.6",
+    "pandas>=2.3.0",
+    "plotly>=6.0.0",
+    "pyKVFinder>=0.8.0",
+    "scikit-learn>=1.5.1",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["black==24.10.0", "flake8==7.1.1", "pytest==8.3.3"]
-docs = ["sphinx==8.1.3", "sphinx-rtd-theme==3.0.2"]
+dev = ["black==25.1.0", "flake8==7.1.1", "pytest==8.3.4"]
+docs = ["sphinx==8.2.3", "sphinx-rtd-theme==3.0.2"]
 
 [project.urls]
 homepage = "https://github.com/cnpem/AtomPacker"
