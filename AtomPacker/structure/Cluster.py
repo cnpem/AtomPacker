@@ -34,6 +34,7 @@ class Cluster:
         self,
         cluster: ase.cluster.Cluster,
         cavity: Cavity,
+        optimization: pandas.DataFrame,
     ):
         """
         Create a new `Cluster` object.
@@ -45,9 +46,13 @@ class Cluster:
         cavity : Cavity
             The cavity object representing the cavity in the supramolecular
             cage.
+        optimization : pandas.DataFrame
+            A DataFrame containing the optimization results of the cluster
+            packing.
         """
         self._cavity = cavity
         self._cluster = cluster
+        self.optimization = optimization
 
         # Cluster information
         self.atom_type = cluster.get_chemical_symbols()[0]
@@ -103,6 +108,11 @@ class Cluster:
             diameter = self._cluster.get_diameter(method="shape")
         elif method == "volume":
             diameter = self._cluster.get_diameter(method="volume")
+        else:
+            raise ValueError(
+                f"Unsupported method: {method}. Supported methods are \
+                'maximum', 'shape', and 'volume'."
+            )
 
         return diameter
 
@@ -205,6 +215,8 @@ class Cluster:
 
         # Save the cavity to a file
         self.universe.atoms.write(filename)
+
+    
 
     @property
     def summary(self) -> pandas.DataFrame:

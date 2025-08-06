@@ -11,7 +11,6 @@ the atoms of the structure.
 """
 
 import itertools
-import logging
 import os
 import warnings
 from copy import deepcopy
@@ -19,6 +18,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import ase
 import numpy
+import pandas
 from ase.cluster.cubic import BodyCenteredCubic, FaceCenteredCubic, SimpleCubic
 from ase.cluster.hexagonal import HexagonalClosedPacked
 from ase.data import atomic_numbers, covalent_radii
@@ -71,7 +71,7 @@ class Cage(object):
         nthreads: Optional[int] = None,
         verbose: bool = False,
         **kwargs: Dict[str, Any],
-    ) -> Cavity:
+    ) -> None:
         """
         Detect the cavity in the macromolecular structure.
 
@@ -227,10 +227,11 @@ are: .cif, .pdb, .xyz, .mol2."
         b: Optional[float] = None,
         c: Optional[float] = None,
         clashing_tolerance: float = 0.0,
-        optimize: bool = False,
         angles: Optional[numpy.ndarray] = None,
         translations: Optional[numpy.ndarray] = None,
-    ) -> Cluster:
+        save: bool = False,
+        basedir: str | None = None,
+    ) -> None:
         """
         Pack the cluster of atoms into the cage structure.
 
@@ -263,14 +264,20 @@ are: .cif, .pdb, .xyz, .mol2."
             used.
         clashing_tolerance : float, optional
             The clashing tolerance (Å), by default 0.0.
-        optimize : bool, optional
-            Optimize the cluster packing, by default False.
         angles : numpy.ndarray, optional
             The rotation angles for the cluster optimization, by default None.
             If None, the angles are [-75, -50, -25, 0, 25, 50, 75].
         translations : numpy.ndarray, optional
             The translations for the cluster optimization, by default None. If
             None, the translations are [-0.2, 0.0, 0.2].
+        save: bool, optional
+            Save each optimization step in a separate PDB file, by default
+            False. If True, the files are named as `cluster_x_y_z_phi_theta_psi.pdb`,
+            where `x`, `y`, `z`, `phi`, `theta`, and `psi` are the translation and
+            rotation angles.
+        basedir: str | None, optional
+            The base directory to save the optimization files, by default None.
+            If None, the files are saved in the current working directory.
 
         Raises
         ------
@@ -307,25 +314,33 @@ first."
                 lattice_constants = get_lattice_constants(atom_type, lattice_type)
             else:
                 lattice_constants = a
+        else:
+            raise ValueError(
+                f"Unsupported lattice type: {lattice_type}. Supported \
+                lattice types are: 'bcc', 'fcc', 'hcp', and 'sc'."
+            )
 
         # Check if clashing tolerance is greater than or equal to 0
         if clashing_tolerance < 0:
             raise ValueError("Clashing tolerance must be greater than or equal to 0.")
 
-        # Make cluster
-        _cluster = self._build_cluster(
+        # Optimize cluster packing
+        _cluster, optimization = self._build_cluster(
             atom_type,
             lattice_type,
             lattice_constants=lattice_constants,
             center=self.centroid,
             clashing_tolerance=clashing_tolerance,
-            optimize=optimize,
             angles=angles,
             translations=translations,
+            save=save,
+            basedir=basedir,
         )
 
         # Create `AtomPacker.structure.Cluster` object
-        self.cluster = Cluster(cluster=_cluster, cavity=self.cavity)
+        self.cluster = Cluster(
+            cluster=_cluster, cavity=self.cavity, optimization=optimization
+        )
 
     def preview(
         self,
@@ -429,15 +444,24 @@ first."
             scene=dict(
                 xaxis=dict(
                     showticklabels=False,
-                    range=[(x.min() - factor * numpy.ptp(x)), (x.max() + factor * numpy.ptp(x))],
+                    range=[
+                        (x.min() - factor * numpy.ptp(x)),
+                        (x.max() + factor * numpy.ptp(x)),
+                    ],
                 ),
                 yaxis=dict(
                     showticklabels=False,
-                    range=[(y.min() - factor * numpy.ptp(y)), (y.max() + factor * numpy.ptp(y))],
+                    range=[
+                        (y.min() - factor * numpy.ptp(y)),
+                        (y.max() + factor * numpy.ptp(y)),
+                    ],
                 ),
                 zaxis=dict(
                     showticklabels=False,
-                    range=[(z.min() - factor * numpy.ptp(z)), (z.max() + factor * numpy.ptp(z))],
+                    range=[
+                        (z.min() - factor * numpy.ptp(z)),
+                        (z.max() + factor * numpy.ptp(z)),
+                    ],
                 ),
             )
         )
@@ -456,10 +480,11 @@ first."
         lattice_constants: Tuple[float, float] | Tuple[float] | None,
         center: numpy.ndarray,
         clashing_tolerance: float = 0.0,
-        optimize: bool = False,
         angles: Optional[numpy.ndarray] = None,
         translations: Optional[numpy.ndarray] = None,
-    ) -> ase.cluster.Cluster:
+        save: bool = False,
+        basedir: str | None = None,
+    ) -> Tuple[ase.cluster.Cluster, pandas.DataFrame]:
         """
         Build the cluster of atoms inside cavity.
 
@@ -468,6 +493,8 @@ first."
         atom_type : str
             The type of atom in the cluster.
         lattice_type : str
+            The type of lattice in the cluster. The available lattice types are
+            'bcc', 'fcc', 'hcp', and 'sc'.
         lattice_constants : Tuple[float, float] | Tuple[float] | None
             The lattice constants `a`, `b`, and `c`. If not specified,
             the lattice constants will be fetched from `AtomPacker.data
@@ -477,20 +504,35 @@ first."
             The center of the cluster.
         clashing_tolerance : float, optional
             The clashing tolerance (Å), by default 0.0.
-        optimize : bool, optional
-            Optimize the cluster packing, by default False.
         angles : numpy.ndarray, optional
             The rotation angles for the cluster optimization, by default None.
             If None, the angles are [-75, -50, -25, 0, 25, 50, 75].
         translations : numpy.ndarray, optional
             The translations for the cluster optimization, by default None. If
             None, the translations are [-0.2, 0.0, 0.2].
+        save: bool, optional
+            Save each optimization step in a separate PDB file, by default
+            False. If True, the files are named as `cluster_x_y_z_phi_theta_psi.pdb`,
+            where `x`, `y`, `z`, `phi`, `theta`, and `psi` are the translation and
+            rotation angles.
+        basedir: str | None, optional
+            The base directory to save the optimization files, by default None.
+            If None, the files are saved in the current working directory.
 
         Returns
         -------
         ase.cluster.Cluster
             The cluster of atoms.
+        pandas.DataFrame
+            A DataFrame containing the cluster properties, such as the number
+            of atoms, the radius, the lattice constants, and the rotation and
+            translation angles.
         """
+        if basedir is None:
+            basedir = os.getcwd()
+        elif not os.path.exists(basedir):
+            os.makedirs(basedir)
+
         # Create dummy surfaces
         surfaces = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
 
@@ -531,6 +573,11 @@ first."
                     layers=layers,
                     latticeconstant=lattice_constants,
                 )
+            case _:
+                raise ValueError(
+                    f"Unsupported lattice type: {lattice_type}. Supported \
+                    lattice types are: 'bcc', 'fcc', 'hcp', and 'sc'."
+                )
 
         # Rotate the cluster to align with the OBB's orientation
         cluster.set_positions(numpy.dot(cluster.positions, obb_axes))
@@ -546,32 +593,14 @@ first."
         # Get lattice constants for nanocluster
         cluster.info.update({"lattice_constants": lattice_constants})
 
-        if optimize:
-            # Create rotation angles and translations for the cluster
-            if angles is None:
-                angles = numpy.arange(start=-75, stop=90, step=25)
-            if translations is None:
-                translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
-
-            # Configure logging to file at the start
-            logging.basicConfig(
-                filename="optimization.log",
-                level=logging.INFO,
-                filemode="w",
-                format="%(asctime)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-            )
-        else:
-            # Create rotation angles and translations for the cluster
-            angles = [0.0]
-            translations = [0.0]
-
-        # Initialize best cluster
-        best_n_atoms = float("-inf")
-        best_rotation = None
-        best_translation = None
+        # Create rotation angles and translations for the cluster
+        if angles is None:
+            angles = numpy.arange(start=-75, stop=90, step=25)
+        if translations is None:
+            translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
 
         # Iterate over all possible combinations of angles and translations
+        optimization = []
         for phi, theta, psi, x, y, z in itertools.product(
             angles, angles, angles, translations, translations, translations
         ):
@@ -590,37 +619,70 @@ first."
                 _tmp, clashing_tolerance=clashing_tolerance
             )
 
-            # Get the number of atoms in the cluster
-            n_atoms = len(_tmp)
+            # Save the cluster if requested
+            if save:
+                filename = f"cluster_{x:.2f}_{y:.2f}_{z:.2f}_{phi:.2f}_{theta:.2f}_{psi:.2f}.pdb"
+                _tmp.write(os.path.join(basedir, filename))
 
-            # Check if the number of atoms is less than the best number of atoms
-            if n_atoms > best_n_atoms:
-                # Update the best number of atoms, rotation, and translation
-                best_n_atoms = n_atoms
-                best_rotation = (phi, theta, psi)
-                best_translation = (x, y, z)
+            # Get the maximum diameter in the cluster
+            diameter = _tmp.get_all_distances().max()
 
-                # Update the best cluster
-                cluster = deepcopy(_tmp)
-                if optimize:
-                    logging.info(
-                        f"Best Number of Atoms: {n_atoms}, Rotate({phi=:.2f},\
-{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f})"
-                    )
+            # Get maximum number of atoms in the cluster
+            maximum_number_of_atoms = int(
+                numpy.ceil(
+                    self.cavity.volume
+                    / ((4 / 3) * numpy.pi * self.universe.atoms.radii[0] ** 3)
+                )
+            )
 
-        # Log optimal condition
-        if optimize:
-            phi, theta, psi = best_rotation
-            x, y, z = best_translation
-            logging.info(
-                f"An Optimal Solution\n[==> Number of Atoms: {best_n_atoms}, \
-Rotate({phi=:.2f},{theta=:.2f},{psi=:.2f}), Translate({x=:.2f},{y=:.2f},{z=:.2f})\n"
+            # Get number of atoms in the cluster
+            number_of_atoms = len(_tmp)
+
+            # Update the cluster summary
+            optimization.append(
+                {
+                    "x": x,
+                    "y": y,
+                    "z": z,
+                    "phi": phi,
+                    "theta": theta,
+                    "psi": psi,
+                    "Atom Type": atom_type,
+                    "Atom Radius": radii,
+                    "Cavity Volume (Å³)": self.cavity.volume,
+                    "Maximum diameter (Å)": diameter,
+                    "Shape diameter (Å)": _tmp.get_diameter(method="shape"),
+                    "Volume diameter (Å)": _tmp.get_diameter(method="volume"),
+                    "Lattice Constants": lattice_constants,
+                    "Lattice Type": lattice_type,
+                    "Maximum Number of Atoms": maximum_number_of_atoms,
+                    "Number of Atoms": number_of_atoms,
+                }
             )
 
         # Remove temporary cluster
         del _tmp
 
-        return cluster
+        # Convert optimization to DataFrame
+        optimization = pandas.DataFrame(optimization)
+
+        # Get the best cluster based on the maximum diameter
+        idx = optimization["Maximum diameter (Å)"].idxmax()
+        x, y, z, phi, theta, psi = optimization.loc[idx, ["x", "y", "z", "phi", "theta", "psi"]]
+
+        # Rotate and translate the cluster
+        cluster.euler_rotate(center="COP", phi=phi, theta=theta, psi=psi)
+        cluster.translate([x, y, z])
+
+        # Filter atoms inside the cavity
+        cluster = self._filter_outside_cavity(cluster)
+
+        # Filter atoms clashing with the cage
+        cluster = self._filter_clashing_atoms(
+            cluster, clashing_tolerance=clashing_tolerance
+        )
+
+        return cluster, optimization
 
     def _filter_clashing_atoms(
         self,
