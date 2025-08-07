@@ -316,7 +316,7 @@ def test_not_filter_inside_cavity(pdb):
     assert len(cluster) == 1
 
 
-def test_build_cluster_without_optimization(pdb):
+def test_build_cluster(pdb):
     cage = Cage()
     cage.load(pdb)
 
@@ -326,20 +326,21 @@ def test_build_cluster_without_optimization(pdb):
     )
 
     # Build cluster
-    _cluster = cage._build_cluster(
+    _cluster, log = cage._build_cluster(
         atom_type="Au",
         lattice_type="fcc",
         lattice_constants=4.08,
         center=cage.centroid,
         clashing_tolerance=0.0,
-        optimize=False,
-        angles=None,
-        translations=None,
+        angles=[0.0],
+        translations=[0.0],
+        save=False,
+        basedir="results",
     )
     assert isinstance(_cluster, ase.cluster.Cluster)
 
     # Convert ase.cluster.Cluster to AtomPacker.Cluster
-    cage.cluster = Cluster(_cluster, cavity=cage.cavity)
+    cage.cluster = Cluster(_cluster, cavity=cage.cavity, log=log)
     assert isinstance(cage.cluster, Cluster)
 
     # Check number of atoms in AtomPacker.Cluster is the same as in
@@ -349,7 +350,7 @@ def test_build_cluster_without_optimization(pdb):
     assert cage.cluster.number_of_atoms == 17
 
 
-def test_pack_without_optimization(pdb):
+def test_pack(pdb):
     cage = Cage()
     cage.load(pdb)
 
@@ -359,7 +360,16 @@ def test_pack_without_optimization(pdb):
     )
 
     # Pack cluster
-    cage.pack("Au", "fcc", 4.08, clashing_tolerance=0.0, optimize=False)
+    cage.pack(
+        "Au",
+        "fcc",
+        4.08,
+        clashing_tolerance=0.0,
+        angles=[0.0],
+        translations=[0.0],
+        save=False,
+        basedir="results",
+    )
 
     assert isinstance(cage.cluster, Cluster)
     # Check number of atoms in AtomPacker.Cluster is 17 (known value)
@@ -371,7 +381,16 @@ def test_pack_with_invalid_lattice_type(pdb):
     cage.load(pdb)
 
     with pytest.raises(ValueError):
-        cage.pack("Au", "invalid", 4.08, clashing_tolerance=0.0, optimize=False)
+        cage.pack(
+            "Au",
+            "invalid",
+            4.08,
+            clashing_tolerance=0.0,
+            angles=[0.0],
+            translations=[0.0],
+            save=False,
+            basedir="results",
+        )
 
 
 def test_pack_with_negative_clashing_tolerance(pdb):
@@ -379,13 +398,31 @@ def test_pack_with_negative_clashing_tolerance(pdb):
     cage.load(pdb)
 
     with pytest.raises(ValueError):
-        cage.pack("Au", "fcc", 4.08, clashing_tolerance=-1.0, optimize=False)
+        cage.pack(
+            "Au",
+            "fcc",
+            4.08,
+            clashing_tolerance=-1.0,
+            angles=[0.0],
+            translations=[0.0],
+            save=False,
+            basedir="results",
+        )
 
 
 def test_pack_for_unloaded_cage():
     cage = Cage()
     with pytest.raises(ValueError):
-        cage.pack("Au", "fcc", 4.08, clashing_tolerance=0.0, optimize=False)
+        cage.pack(
+            "Au",
+            "fcc",
+            4.08,
+            clashing_tolerance=0.0,
+            angles=[0.0],
+            translations=[0.0],
+            save=False,
+            basedir="results",
+        )
 
 
 def test_pack_without_cavity(pdb):
@@ -393,7 +430,16 @@ def test_pack_without_cavity(pdb):
     cage.load(pdb)
 
     with pytest.raises(ValueError):
-        cage.pack("Au", "fcc", 4.08, clashing_tolerance=0.0, optimize=False)
+        cage.pack(
+            "Au",
+            "fcc",
+            4.08,
+            clashing_tolerance=0.0,
+            angles=[0.0],
+            translations=[0.0],
+            save=False,
+            basedir="results",
+        )
 
 
 if __name__ == "__main__":

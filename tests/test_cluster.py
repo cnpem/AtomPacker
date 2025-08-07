@@ -70,12 +70,15 @@ def test_cluster_distances(pdb, cavity, cluster):
     cage.cavity = cavity
 
     # Dummy Cluster
-    cage.cluster = Cluster(cluster, cavity)
+    cage.cluster = Cluster(cluster, cavity, log=None)
 
     # Check distances for multi-atom cluster
-    assert (
-        cage.cluster._get_distances() == cage.cluster._cluster.get_all_distances()
-    ).all()
+    # Get distances from positions
+    positions = cage.cluster._cluster.positions
+    distances = numpy.linalg.norm(
+        positions[:, None, :] - positions[None, :, :], axis=-1
+    )
+    assert (distances == cage.cluster._cluster.get_all_distances()).all()
 
 
 def test_cluster_radii(pdb, cavity, cluster):
@@ -86,7 +89,7 @@ def test_cluster_radii(pdb, cavity, cluster):
     cage.cavity = cavity
 
     # Dummy Cluster
-    cage.cluster = Cluster(cluster, cavity)
+    cage.cluster = Cluster(cluster, cavity, log=None)
 
     # Calculate radii
     distances = cage.cluster._cluster.get_all_distances()
@@ -104,7 +107,7 @@ def test_cluster_coordinates(pdb, cavity, cluster):
     cage.cavity = cavity
 
     # Dummy Cluster
-    cage.cluster = Cluster(cluster, cavity)
+    cage.cluster = Cluster(cluster, cavity, log=None)
 
     # Check coordinates
     assert (cage.cluster.coordinates - cage.cluster._cluster.positions < 0.001).all()
@@ -118,7 +121,7 @@ def test_cluster_lattice_constants(pdb, cavity, cluster):
     cage.cavity = cavity
 
     # Dummy Cluster
-    cage.cluster = Cluster(cluster, cavity)
+    cage.cluster = Cluster(cluster, cavity, log=None)
     print(cage.cluster.lattice_constants)
 
     # Check lattice constants
@@ -133,7 +136,7 @@ def test_cluster_number_of_atoms(pdb, cavity, cluster):
     cage.cavity = cavity
 
     # Dummy Cluster
-    cage.cluster = Cluster(cluster, cavity)
+    cage.cluster = Cluster(cluster, cavity, log=None)
 
     # Check maximum number of atoms
     assert cage.cluster.number_of_atoms == 13
@@ -147,7 +150,7 @@ def test_cluster_maximum_number_of_atoms(pdb, cavity, cluster):
     cage.cavity = cavity
 
     # Dummy Cluster
-    cage.cluster = Cluster(cluster, cavity)
+    cage.cluster = Cluster(cluster, cavity, log=None)
 
     # Get maximum number of atoms
     maximum_number_of_atoms = numpy.ceil(

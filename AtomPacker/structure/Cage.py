@@ -14,14 +14,14 @@ import itertools
 import os
 import warnings
 from copy import deepcopy
-from typing import Any, Dict, Optional, Tuple
 
-import ase
+import ase.cluster
 import numpy
 import pandas
 from ase.cluster.cubic import BodyCenteredCubic, FaceCenteredCubic, SimpleCubic
 from ase.cluster.hexagonal import HexagonalClosedPacked
 from ase.data import atomic_numbers, covalent_radii
+from MDAnalysis import Universe
 from plotly.express import scatter_3d
 from pyKVFinder import detect, get_vertices
 from sklearn.decomposition import PCA
@@ -32,9 +32,9 @@ from .Cluster import Cluster
 from .data import get_lattice_constants
 
 
-class Cage(object):
+class Cage:
     """
-    A container for the atoms of a macromolecular structure.
+    A class representing a supramolecular cage loaded from a structure file.
 
     The :class:`AtomPacker.Cage` class is used to store the atoms of a
     macromolecular structure.
@@ -44,21 +44,67 @@ class Cage(object):
         """
         Create a new :class:`AtomPacker.structure.Cage` object.
         """
-        self.universe = None
-        self.cavity = None
-        self.cluster = None
+        self.universe: Universe | None = None
+        self.cavity: Cavity | None = None
+        self.cluster: Cluster | None = None
 
     def __repr__(self) -> str:
+        return f"<AtomPacker.structure.Cage at {hex(id(self))}>"
+
+    @property
+    def atomic(self) -> numpy.ndarray | None:
         """
-        Return a string representation of the :class:`AtomPacker.structure
-        .Cage` object.
+        Get the coordinates of the atoms in the molecular structure.
 
         Returns
         -------
-        str
-            A string representation of the object.
+        numpy.ndarray | None
+            An array containing the atomic information. The array has the
+            following columns: resnum, chain, resname, element, x, y, z,
+            radius. If the cage is not loaded, returns None.
         """
-        return f"<AtomPacker.structure.Cage at {hex(id(self))}>"
+        if self.universe is not None:
+            return numpy.c_[
+                self.universe.atoms.resnums,  # resnums
+                self.universe.atoms.chainIDs,  # chains
+                self.universe.atoms.resnames,  # resnamess
+                self.universe.atoms.elements,  # atom type
+                self.universe.atoms.positions,  # x, y, z
+                self.universe.atoms.radii,  # radius
+            ]
+
+    @property
+    def centroid(self) -> numpy.ndarray | None:
+        """
+        Get the centroid of the cage structure.
+
+        Returns
+        -------
+        numpy.ndarray | None
+            An array containing the xyz coordinates of the centroid of the
+            cage structure. If the cage is not loaded, returns None.
+
+        Raises
+        ------
+        ValueError
+            If the cage is not loaded.
+        """
+        if self.universe is not None:
+            return self.coordinates.mean(axis=0)
+
+    @property
+    def coordinates(self) -> numpy.ndarray | None:
+        """
+        Get the coordinates of the atoms in the molecular structure.
+
+        Returns
+        -------
+        numpy.ndarray | None
+            An array containing the atomic coordinates. The array has the
+            following columns: x, y, z. If the cage is not loaded, returns None.
+        """
+        if self.universe is not None:
+            return self.universe.atoms.positions
 
     def detect_cavity(
         self,
@@ -68,9 +114,9 @@ class Cage(object):
         removal_distance: float = 2.4,
         volume_cutoff: float = 100.0,
         surface: str = "SES",
-        nthreads: Optional[int] = None,
+        nthreads: int | None = None,
         verbose: bool = False,
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, object],
     ) -> None:
         """
         Detect the cavity in the macromolecular structure.
@@ -95,7 +141,7 @@ class Cage(object):
             is `os.cpu_count() - 1`.
         verbose : bool, optional
             Print extra information to standard output, by default False.
-        kwargs : Dict[str, Any]
+        kwargs : dict[str, object], optional
             Additional keyword arguments to pass to the cavity detection
             algorithm (pyKVFinder.detect) of pyKVFinder package.
 
@@ -175,7 +221,7 @@ analysis."
         if self.cluster is not None:
             self.cluster = None
 
-    def load(self, filename: str, vdw: Optional[Dict[str, float]] = None) -> None:
+    def load(self, filename: str, vdw: dict[str, float] | None = None) -> None:
         """
         Load a supramolecular cage structure file into the :class:`MDAnalysis
         .Univese` object.
@@ -185,7 +231,7 @@ analysis."
         filename : str
             The filename of the structure file. The file format is determined
             by the suffix.  Supported formats are: .cif, .mol2, .pdb, .xyz.
-        vdw : Dict[str, float], optional
+        vdw : dict[str, float] | None, optional
             A dictionary containing the van der Waals radii for each atom type,
             by default None. If None, the van der Waals radii are looked up
             from the `pyKVFinder` package.
@@ -201,10 +247,10 @@ analysis."
             If the file format is not supported.
         """
         # We only need the suffix here
-        _, suffix = os.path.splitext(filename)
+        _, ext = os.path.splitext(filename)
 
         # Match the suffix to the appropriate file format
-        match suffix:
+        match ext:
             case ".cif":
                 self.universe = load_mmcif(filename, vdw)
             case ".mol2":
@@ -215,7 +261,7 @@ analysis."
                 self.universe = load_xyz(filename, vdw)
             case _:
                 raise ValueError(
-                    f"Unsupported file format: {suffix}. Supported formats \
+                    f"Unsupported file format: {ext}. Supported formats \
 are: .cif, .pdb, .xyz, .mol2."
                 )
 
@@ -223,79 +269,57 @@ are: .cif, .pdb, .xyz, .mol2."
         self,
         atom_type: str,
         lattice_type: str,
-        a: Optional[float] = None,
-        b: Optional[float] = None,
-        c: Optional[float] = None,
+        a: float | None = None,
+        b: float | None = None,
+        c: float | None = None,
         clashing_tolerance: float = 0.0,
-        angles: Optional[numpy.ndarray] = None,
-        translations: Optional[numpy.ndarray] = None,
+        angles: numpy.ndarray | list[float] | None = None,
+        translations: numpy.ndarray | list[float] | None = None,
         save: bool = False,
         basedir: str | None = None,
     ) -> None:
         """
-        Pack the cluster of atoms into the cage structure.
+        Pack a cluster of atoms into the cage structure.
 
         Parameters
         ----------
         atom_type : str
-            The type of atom in the cluster.
+            Atom type for the cluster.
         lattice_type : str
-            The type of lattice in the cluster. The available lattice types are
-            'bcc', 'fcc', 'hcp', and 'sc', that are based on the `ase.cluster`
-            module. The `ase.cluster` developers state that the module works
-            properly for the three cubic crystal structures: FaceCenteredCubic
-            ('fcc'), BodyCenteredCubic ('bcc'), and SimpleCubic ('sc'). Other
-            structures like HexagonalClosedPacked ('hcp') is implemented, but
-            currently do not work correctly.
-        a : float, optional
-            The lattice constant `a`. If not specified, the lattice constant
-            will be fetched from `AtomPacker.data.lattice_constants` if
-            available. If not, the experimental values from `ase.data` will be
-            used.
-        b : float, optional
-            The lattice constant `b`. If not specified, the lattice constant
-            will be fetched from `AtomPacker.data.lattice_constants` if
-            available. If not, the experimental values from `ase.data` will be
-            used.
-        c : float, optional
-            The lattice constant `c`. If not specified, the lattice constant
-            will be fetched from `AtomPacker.data.lattice_constants` if
-            available. If not, the experimental values from `ase.data` will be
-            used.
+            Lattice type for the cluster. Supported types: 'bcc', 'fcc', 'hcp',
+            'sc'.
+        a : float | None, optional
+            Lattice constant 'a'. If None, uses values from AtomPacker or ASE.
+        b : float | None, optional
+            Lattice constant 'b'. If None, uses values from AtomPacker or ASE.
+        c : float | None, optional
+            Lattice constant 'c'. If None, uses values from AtomPacker or ASE.
         clashing_tolerance : float, optional
-            The clashing tolerance (Å), by default 0.0.
-        angles : numpy.ndarray, optional
-            The rotation angles for the cluster optimization, by default None.
-            If None, the angles are [-75, -50, -25, 0, 25, 50, 75].
-        translations : numpy.ndarray, optional
-            The translations for the cluster optimization, by default None. If
-            None, the translations are [-0.2, 0.0, 0.2].
-        save: bool, optional
-            Save each optimization step in a separate PDB file, by default
-            False. If True, the files are named as `cluster_x_y_z_phi_theta_psi.pdb`,
-            where `x`, `y`, `z`, `phi`, `theta`, and `psi` are the translation and
-            rotation angles.
-        basedir: str | None, optional
-            The base directory to save the optimization files, by default None.
-            If None, the files are saved in the current working directory.
+            Minimum allowed distance (Å) between cluster and cage atoms.
+            Default is 0.0.
+        angles : numpy.ndarray | list[float] | None, optional
+            Rotation angles for cluster optimization. If None, uses [-75, -50,
+            -25, 0, 25, 50, 75].
+        translations : numpy.ndarray | list[float] | None, optional
+            Translation values for cluster optimization. If None, uses
+            [-0.2, 0.0, 0.2].
+        save : bool, optional
+            If True, saves each optimization step as a PDB file. Default is
+            False.
+        basedir : str | None, optional
+            Directory to save files. If None, uses current working directory.
 
         Raises
         ------
         ValueError
-            If the cage is not loaded.
-        ValueError
-            If the cavity is not detected.
-        ValueError
-            If the clashing tolerance is less than 0.
+            If the cage is not loaded, cavity is not detected, or
+            clashing_tolerance < 0.
         """
         if self.universe is None:
             raise ValueError("No cage loaded. Please run load() first.")
 
         if self.cavity is None:
-            raise ValueError(
-                "No cavity detected. Please run detect_cavity() \
-first."
-            )
+            raise ValueError("No cavity detected. Please run detect_cavity() first.")
 
         # Get lattice constants
         if lattice_type == "hcp":
@@ -325,7 +349,7 @@ first."
             raise ValueError("Clashing tolerance must be greater than or equal to 0.")
 
         # Optimize cluster packing
-        _cluster, optimization = self._build_cluster(
+        _cluster, log = self._build_cluster(
             atom_type,
             lattice_type,
             lattice_constants=lattice_constants,
@@ -338,16 +362,15 @@ first."
         )
 
         # Create `AtomPacker.structure.Cluster` object
-        self.cluster = Cluster(
-            cluster=_cluster, cavity=self.cavity, optimization=optimization
-        )
+        self.cluster = Cluster(cluster=_cluster, cavity=self.cavity, log=log)
 
     def preview(
         self,
         show_cavity: bool = False,
         show_cluster: bool = False,
+        show_openings: bool = False,
         renderer: str = "browser",
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, object],
     ) -> None:
         """
         Preview the cage system (cage, cavity, and cluster) in a 3D viewer.
@@ -358,10 +381,12 @@ first."
             Show the cavity in the 3D viewer, by default False.
         show_cluster : bool, optional
             Show the cluster in the 3D viewer, by default False.
+        show_openings : bool, optional
+            Show the openings in the cavity in the 3D viewer, by default False.
         renderer : str, optional
             The renderer to use for the 3D viewer. Supported renderers are
             'browser' (default), 'notebook' and 'png'.
-        **kwargs : Dict[str, Any]
+        **kwargs : dict[str, object]
             Additional keyword arguments to pass to the scatter_3d function of
             the plotly.express package.
 
@@ -376,15 +401,17 @@ first."
             If the cavity is not detected, a warning is issued.
         UserWarning
             If the cluster is not packed, a warning is issued.
+        UserWarning
+            If the openings are not detected, a warning is issued.
         """
         # Check if cage is loaded
         if self.universe is None:
             raise ValueError("No cage loaded. Please run load() first.")
-        else:
-            coordinates = self.coordinates
-            radii = self.universe.atoms.radii
-            labels = numpy.full(self.atomic.shape[0], "Cage")
-            opacity = numpy.full(self.atomic.shape[0], 1.0)
+
+        coordinates = self.coordinates
+        radii = self.universe.atoms.radii
+        labels = numpy.full(self.atomic.shape[0], "Cage")
+        opacity = numpy.full(self.atomic.shape[0], 1.0)
 
         # Check if cavity is detect. If not, issue a warning.
         if show_cavity:
@@ -421,6 +448,28 @@ first."
                 )
                 opacity = numpy.hstack([opacity, numpy.full(self.atomic.shape[0], 1.0)])
 
+        # Check if openings are detected. If not, issue a warning.
+        if show_openings:
+            if self.cavity.openings is None:
+                warnings.warn(
+                    "No openings detected. To visualize openings, run \
+detect_openings() first."
+                )
+            else:
+                coordinates = numpy.vstack(
+                    [coordinates, self.cavity.openings.coordinates]
+                )
+                radii = numpy.hstack([radii, self.cavity.openings.universe.atoms.radii])
+                labels = numpy.hstack(
+                    [
+                        labels,
+                        numpy.full(
+                            self.cavity.openings.coordinates.shape[0], "Openings"
+                        ),
+                    ]
+                )
+                opacity = numpy.hstack([opacity, numpy.full(self.atomic.shape[0], 1.0)])
+
         # Preview the cage system in a 3D viewer
         x, y, z = coordinates.T
         fig = scatter_3d(
@@ -433,6 +482,7 @@ first."
                 "Cage": "rgba(99, 110, 255, 1)",  # blue
                 "Cavity": "rgba(102, 102, 102, 0.25)",  # light gray
                 "Cluster": "rgba(239, 85, 59, 1)",  # red
+                "Openings": "rgba(0, 0, 0, 1)",  # black
             },
             opacity=1.0,
             labels={"color": "Structures"},
@@ -477,24 +527,24 @@ first."
         self,
         atom_type: str,
         lattice_type: str,
-        lattice_constants: Tuple[float, float] | Tuple[float] | None,
+        lattice_constants: tuple[float, float] | tuple[float] | None,
         center: numpy.ndarray,
         clashing_tolerance: float = 0.0,
-        angles: Optional[numpy.ndarray] = None,
-        translations: Optional[numpy.ndarray] = None,
+        angles: numpy.ndarray | list[float] | None = None,
+        translations: numpy.ndarray | list[float] | None = None,
         save: bool = False,
         basedir: str | None = None,
-    ) -> Tuple[ase.cluster.Cluster, pandas.DataFrame]:
+    ) -> tuple[ase.cluster.Cluster, pandas.DataFrame]:
         """
         Build the cluster of atoms inside cavity.
 
         Parameters
         ----------
         atom_type : str
-            The type of atom in the cluster.
+            Atom type for the cluster.
         lattice_type : str
-            The type of lattice in the cluster. The available lattice types are
-            'bcc', 'fcc', 'hcp', and 'sc'.
+            Lattice type for the cluster. Supported types: 'bcc', 'fcc', 'hcp',
+            'sc'.
         lattice_constants : Tuple[float, float] | Tuple[float] | None
             The lattice constants `a`, `b`, and `c`. If not specified,
             the lattice constants will be fetched from `AtomPacker.data
@@ -503,21 +553,19 @@ first."
         center : numpy.ndarray
             The center of the cluster.
         clashing_tolerance : float, optional
-            The clashing tolerance (Å), by default 0.0.
-        angles : numpy.ndarray, optional
-            The rotation angles for the cluster optimization, by default None.
-            If None, the angles are [-75, -50, -25, 0, 25, 50, 75].
-        translations : numpy.ndarray, optional
-            The translations for the cluster optimization, by default None. If
-            None, the translations are [-0.2, 0.0, 0.2].
-        save: bool, optional
-            Save each optimization step in a separate PDB file, by default
-            False. If True, the files are named as `cluster_x_y_z_phi_theta_psi.pdb`,
-            where `x`, `y`, `z`, `phi`, `theta`, and `psi` are the translation and
-            rotation angles.
-        basedir: str | None, optional
-            The base directory to save the optimization files, by default None.
-            If None, the files are saved in the current working directory.
+            Minimum allowed distance (Å) between cluster and cage atoms.
+            Default is 0.0.
+        angles : numpy.ndarray | list[float] | None, optional
+            Rotation angles for cluster optimization. If None, uses [-75, -50,
+            -25, 0, 25, 50, 75].
+        translations : numpy.ndarray | list[float] | None, optional
+            Translation values for cluster optimization. If None, uses
+            [-0.2, 0.0, 0.2].
+        save : bool, optional
+            If True, saves each optimization step as a PDB file. Default is
+            False.
+        basedir : str | None, optional
+            Directory to save files. If None, uses current working directory.
 
         Returns
         -------
@@ -600,7 +648,7 @@ first."
             translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
 
         # Iterate over all possible combinations of angles and translations
-        optimization = []
+        log = []
         for phi, theta, psi, x, y, z in itertools.product(
             angles, angles, angles, translations, translations, translations
         ):
@@ -639,7 +687,7 @@ first."
             number_of_atoms = len(_tmp)
 
             # Update the cluster summary
-            optimization.append(
+            log.append(
                 {
                     "x": x,
                     "y": y,
@@ -660,15 +708,15 @@ first."
                 }
             )
 
-        # Remove temporary cluster
-        del _tmp
+            # Remove temporary cluster
+            del _tmp
 
         # Convert optimization to DataFrame
-        optimization = pandas.DataFrame(optimization)
+        log = pandas.DataFrame(log)
 
         # Get the best cluster based on the maximum diameter
-        idx = optimization["Maximum diameter (Å)"].idxmax()
-        x, y, z, phi, theta, psi = optimization.loc[idx, ["x", "y", "z", "phi", "theta", "psi"]]
+        idx = log["Maximum diameter (Å)"].idxmax()
+        x, y, z, phi, theta, psi = log.loc[idx, ["x", "y", "z", "phi", "theta", "psi"]]
 
         # Rotate and translate the cluster
         cluster.euler_rotate(center="COP", phi=phi, theta=theta, psi=psi)
@@ -682,7 +730,7 @@ first."
             cluster, clashing_tolerance=clashing_tolerance
         )
 
-        return cluster, optimization
+        return cluster, log
 
     def _filter_clashing_atoms(
         self,
@@ -814,7 +862,7 @@ first."
 
         return layers
 
-    def _get_obb(self) -> Tuple[numpy.ndarray, numpy.ndarray]:
+    def _get_obb(self) -> tuple[numpy.ndarray, numpy.ndarray]:
         """
         Get the Oriented Bounding Box (OBB) of the cage structure.
 
@@ -836,58 +884,3 @@ first."
         obb_extents = numpy.ptp(pca.transform(self.coordinates), axis=0)
 
         return obb_axes, obb_extents
-
-    @property
-    def atomic(self) -> numpy.ndarray:
-        """
-        Get the coordinates of the atoms in the molecular structure.
-
-        Returns
-        -------
-        numpy.ndarray
-            An array containing the atomic information. The array has the
-            following columns: resnum, chain, resname, element, x, y, z,
-            radius.
-        """
-        if self.universe is not None:
-            return numpy.c_[
-                self.universe.atoms.resnums,  # resnums
-                self.universe.atoms.chainIDs,  # chains
-                self.universe.atoms.resnames,  # resnamess
-                self.universe.atoms.elements,  # atom type
-                self.universe.atoms.positions,  # x, y, z
-                self.universe.atoms.radii,  # radius
-            ]
-
-    @property
-    def centroid(self) -> numpy.ndarray:
-        """
-        Get the centroid of the cage structure.
-
-        Returns
-        -------
-        numpy.ndarray
-            An array containing the xyz coordinates of the centroid of the
-            cage structure.
-
-        Raises
-        ------
-        ValueError
-            If the cage is not loaded.
-        """
-        if self.universe is not None:
-            return self.coordinates.mean(axis=0)
-
-    @property
-    def coordinates(self) -> numpy.ndarray:
-        """
-        Get the coordinates of the atoms in the molecular structure.
-
-        Returns
-        -------
-        numpy.ndarray
-            An array containing the atomic coordinates. The array has the
-            following columns: x, y, z.
-        """
-        if self.universe is not None:
-            return self.universe.atoms.positions

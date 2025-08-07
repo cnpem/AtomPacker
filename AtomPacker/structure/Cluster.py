@@ -11,9 +11,8 @@ cluster properties, and exporting cavity data.
 """
 
 import os
-from typing import Any, Dict
 
-import ase
+import ase.cluster
 import numpy
 import pandas
 from MDAnalysis import Universe
@@ -34,7 +33,7 @@ class Cluster:
         self,
         cluster: ase.cluster.Cluster,
         cavity: Cavity,
-        optimization: pandas.DataFrame,
+        log: pandas.DataFrame | None = None,
     ):
         """
         Create a new `Cluster` object.
@@ -46,13 +45,13 @@ class Cluster:
         cavity : Cavity
             The cavity object representing the cavity in the supramolecular
             cage.
-        optimization : pandas.DataFrame
-            A DataFrame containing the optimization results of the cluster
-            packing.
+        log : pandas.DataFrame, optional
+            A DataFrame containing the optimization details of the cluster.
+            If None, no log is stored. By default None.
         """
-        self._cavity = cavity
-        self._cluster = cluster
-        self.optimization = optimization
+        self._cavity: Cavity = cavity
+        self._cluster: ase.cluster.Cluster = cluster
+        self.log: pandas.DataFrame | None = log
 
         # Cluster information
         self.atom_type = cluster.get_chemical_symbols()[0]
@@ -61,19 +60,64 @@ class Cluster:
         self.radii = cluster.info.get("radii")
 
         # Atomic information: MDAnalysis Universe
-        self.universe = self._get_universe()
+        self.universe: Universe = self._get_universe()
 
     def __repr__(self) -> str:
-        """
-        Return a string representation of the :class:`AtomPacker.structure
-        .Cluster` object.
-
-        Returns
-        -------
-        str
-            A string representation of the object.
-        """
         return f"<AtomPacker.structure.Cluster at {hex(id(self))}>"
+
+    @property
+    def coordinates(self) -> numpy.ndarray:
+        """Return the coordinates of the atoms in the cluster."""
+        return self.universe.atoms.positions
+
+    @property
+    def maximum_number_of_atoms(self) -> int:
+        """
+        Calculate the maximum number of atoms in the cluster.
+
+        The maximum number of atoms is calculated based on the volume of the
+        cavity divided by the volume of the atom in the cluster. The formula
+        is given by:
+
+        .. math::
+            N_{max} = \\left \\lceil \\frac{V_{cav}}{V_a} \\right \\rceil
+                    = \\left \\lceil \\frac{V_{cav}}{\\frac{4}{3}\\pi R_a^3} \\
+                        \\right \\rceil
+
+        where :math:`V_{cav}` is the volume of the cavity, :math:`V_a` is the
+        volume of the atom in the cluster, :math:`R_a` is the radius of the
+        atom in the cluster, and :math:`\\lceil \\cdot \\rceil` is the ceiling
+        function.
+        """
+        return numpy.ceil(
+            self._cavity.volume
+            / ((4 / 3) * numpy.pi * self.universe.atoms.radii[0] ** 3)
+        ).astype(int)
+
+    @property
+    def number_of_atoms(self) -> int:
+        """Get the number of atoms in the cluster."""
+        return len(self._cluster)
+
+    @property
+    def summary(self) -> pandas.DataFrame:
+        """Print a summary of the cluster properties."""
+        return pandas.DataFrame.from_dict(
+            {
+                "Atom Type": self.atom_type,
+                "Atom Radius": self.radii,
+                "Cavity Volume (Å³)": self._cavity.volume,
+                "Diameter (maximum)": self.diameter(method="maximum"),
+                "Diameter (shape)": self.diameter(method="shape"),
+                "Diameter (volume)": self.diameter(method="volume"),
+                "Lattice Constants": self.lattice_constants,
+                "Lattice Type": self.lattice_type,
+                "Maximum Number of Atoms": self.maximum_number_of_atoms,
+                "Number of Atoms": self.number_of_atoms,
+            },
+            orient="index",
+            columns=[self._cluster.get_chemical_formula()],
+        )
 
     def diameter(self, method: str = "maximum") -> float:
         """
@@ -103,7 +147,7 @@ class Cluster:
         """
         # Calculate distances between atoms
         if method == "maximum":
-            diameter = self._get_distances().max()
+            diameter = self._cluster.get_all_distances().max()
         elif method == "shape":
             diameter = self._cluster.get_diameter(method="shape")
         elif method == "volume":
@@ -117,7 +161,10 @@ class Cluster:
         return diameter
 
     def preview(
-        self, renderer: str = "browser", opacity: float = 1.0, **kwargs: Dict[str, Any]
+        self,
+        renderer: str = "browser",
+        opacity: float = 1.0,
+        **kwargs: dict[str, object],
     ) -> None:
         """
         Preview the cavity in a 3D viewer.
@@ -131,62 +178,59 @@ class Cluster:
             The opacity of the atoms in the 3D viewer, by default 1.0. The
             opacity value ranges from 0.0 (completely transparent) to 1.0
             (completely opaque).
-        **kwargs : Dict[str, Any]
+        **kwargs : dict[str, object]
             Additional keyword arguments to pass to the scatter_3d function of
             the plotly.express package.
         """
         if self._cluster is not None:
-            x, y, z = self.coordinates.T
-            radii = self.universe.atoms.radii
-            fig = scatter_3d(
-                x=x,
-                y=y,
-                z=z,
-                size=(radii * 2),
-                color=numpy.full(x.shape[0], "Cluster"),
-                color_discrete_map={
-                    "Cage": "rgba(99, 110, 255, 1)",  # blue
-                    "Cavity": "rgba(102, 102, 102, 0.25)",  # light gray
-                    "Cluster": "rgba(239, 85, 59, 1)",  # red
-                },
-                labels={"color": "Structures"},
-                opacity=opacity,
-                **kwargs,
+            return
+
+        x, y, z = self.coordinates.T
+        fig = scatter_3d(
+            x=x,
+            y=y,
+            z=z,
+            size=self.universe.atoms.radii * 2,
+            color=numpy.full(x.shape[0], "Cluster"),
+            color_discrete_map={
+                "Cage": "rgba(99, 110, 255, 1)",  # blue
+                "Cavity": "rgba(102, 102, 102, 0.25)",  # light gray
+                "Cluster": "rgba(239, 85, 59, 1)",  # red
+            },
+            labels={"color": "Structures"},
+            opacity=opacity,
+            **kwargs,
+        )
+        # Update layout
+        factor = 0.5
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(
+                    showticklabels=False,
+                    range=[
+                        (x.min() - factor * numpy.ptp(x)),
+                        (x.max() + factor * numpy.ptp(x)),
+                    ],
+                ),
+                yaxis=dict(
+                    showticklabels=False,
+                    range=[
+                        (y.min() - factor * numpy.ptp(y)),
+                        (y.max() + factor * numpy.ptp(y)),
+                    ],
+                ),
+                zaxis=dict(
+                    showticklabels=False,
+                    range=[
+                        (z.min() - factor * numpy.ptp(z)),
+                        (z.max() + factor * numpy.ptp(z)),
+                    ],
+                ),
             )
-            # Update layout
-            factor = 0.5
-            fig.update_layout(
-                scene=dict(
-                    xaxis=dict(
-                        showticklabels=False,
-                        range=[
-                            (x.min() - factor * numpy.ptp(x)),
-                            (x.max() + factor * numpy.ptp(x)),
-                        ],
-                    ),
-                    yaxis=dict(
-                        showticklabels=False,
-                        range=[
-                            (y.min() - factor * numpy.ptp(y)),
-                            (y.max() + factor * numpy.ptp(y)),
-                        ],
-                    ),
-                    zaxis=dict(
-                        showticklabels=False,
-                        range=[
-                            (z.min() - factor * numpy.ptp(z)),
-                            (z.max() + factor * numpy.ptp(z)),
-                        ],
-                    ),
-                )
-            )
-            # Update marker
-            fig.update_traces(
-                marker=dict(
-                    sizeref=0.001,
-                )
-            )
-            fig.show(renderer)
+        )
+        # Update marker
+        fig.update_traces(marker=dict(sizeref=0.001))
+        fig.show(renderer)
 
     def save(self, filename: str = "cluster.pdb") -> None:
         """
@@ -204,54 +248,17 @@ class Cluster:
             Supported formats are: .pdb, .xyz.
         """
         # We only need the suffix here
-        _, suffix = os.path.splitext(filename)
+        _, ext = os.path.splitext(filename)
 
         # Check if filename is a supported format
-        if suffix not in [".pdb", ".xyz"]:
+        if ext not in [".pdb", ".xyz"]:
             raise ValueError(
-                f"Unsupported file format: {suffix}. Supported formats are: \
+                f"Unsupported file format: {ext}. Supported formats are: \
 .pdb, .xyz."
             )
 
         # Save the cavity to a file
         self.universe.atoms.write(filename)
-
-    
-
-    @property
-    def summary(self) -> pandas.DataFrame:
-        """
-        Print a summary of the cluster properties.
-        """
-        return pandas.DataFrame.from_dict(
-            {
-                "Atom Type": self.atom_type,
-                "Atom Radius": self.radii,
-                "Cavity Volume (Å³)": self._cavity.volume,
-                "Diameter (maximum)": self.diameter(method="maximum"),
-                "Diameter (shape)": self.diameter(method="shape"),
-                "Diameter (volume)": self.diameter(method="volume"),
-                "Lattice Constants": self.lattice_constants,
-                "Lattice Type": self.lattice_type,
-                "Maximum Number of Atoms": self.maximum_number_of_atoms,
-                "Number of Atoms": self.number_of_atoms,
-            },
-            orient="index",
-            columns=[self._cluster.get_chemical_formula()],
-        )
-
-    def _get_distances(self) -> numpy.ndarray:
-        """
-        Get the distances between atoms in the cluster.
-
-        Returns
-        -------
-        numpy.ndarray
-            A 2D array of distances between atoms in the
-            cluster.
-        """
-        # Calculate distances between atoms
-        return self._cluster.get_all_distances()
 
     def _get_universe(self) -> Universe:
         """
@@ -266,7 +273,7 @@ class Cluster:
             The `MDAnalysis.Universe` object of the cluster.
         """
         # Create an empty Universe
-        universe = Universe.empty(n_atoms=len(self._cluster), trajectory=True)
+        universe: Universe = Universe.empty(n_atoms=len(self._cluster), trajectory=True)
 
         # Add coordinates
         universe.atoms.positions = self._cluster.positions
@@ -275,74 +282,23 @@ class Cluster:
         universe.dimensions = [1.0, 1.0, 1.0, 90.0, 90.0, 90.0]
 
         # Add topology attributes
-        universe.add_TopologyAttr(
-            "record_types", ["ATOM"] * universe.atoms.n_atoms
-        )  # record type
-        universe.add_TopologyAttr(
-            "names", [self.atom_type] * universe.atoms.n_atoms
-        )  # atom name
-        universe.add_TopologyAttr(
-            "elements", [self.atom_type] * universe.atoms.n_atoms
-        )  # atom type
+        n = universe.atoms.n_atoms
+        universe.add_TopologyAttr("record_types", ["ATOM"] * n)  # record type
+        universe.add_TopologyAttr("names", [self.atom_type] * n)  # atom name
+        universe.add_TopologyAttr("elements", [self.atom_type] * n)  # atom type
         universe.add_TopologyAttr(
             "radii",
-            [self.radii] * universe.atoms.n_atoms,  # atom radius
+            [self.radii] * n,  # atom radius
         )
         universe.add_TopologyAttr("resids", [1])  # resids
         universe.add_TopologyAttr("resnums", [1])  # resnums
         universe.add_TopologyAttr("resnames", ["NC"])  # resnames
-        universe.add_TopologyAttr(
-            "chainIDs", ["X"] * universe.atoms.n_atoms
-        )  # chainIDs
+        universe.add_TopologyAttr("chainIDs", ["X"] * n)  # chainIDs
         universe.add_TopologyAttr("segids", [" "])  # segids
         universe.add_TopologyAttr("icodes", [" "])  # icodes
-        universe.add_TopologyAttr("altLocs", [" "] * universe.atoms.n_atoms)  # altLocs
-        universe.add_TopologyAttr(
-            "occupancies", [1.0] * universe.atoms.n_atoms
-        )  # occupancy
-        universe.add_TopologyAttr(
-            "tempfactors", [0.0] * universe.atoms.n_atoms
-        )  # temperature factor
-        universe.add_TopologyAttr(
-            "formalcharges", [0] * universe.atoms.n_atoms
-        )  # formalcharge
+        universe.add_TopologyAttr("altLocs", [" "] * n)  # altLocs
+        universe.add_TopologyAttr("occupancies", [1.0] * n)  # occupancy
+        universe.add_TopologyAttr("tempfactors", [0.0] * n)  # temperature factor
+        universe.add_TopologyAttr("formalcharges", [0] * n)  # formalcharge
 
         return universe
-
-    @property
-    def coordinates(self):
-        """
-        Return the coordinates of the atoms in the cluster.
-        """
-        return self.universe.atoms.positions
-
-    @property
-    def maximum_number_of_atoms(self) -> int:
-        """
-        Calculate the maximum number of atoms in the cluster.
-
-        The maximum number of atoms is calculated based on the volume of the
-        cavity divided by the volume of the atom in the cluster. The formula
-        is given by:
-
-        .. math::
-            N_{max} = \\left \\lceil \\frac{V_{cav}}{V_a} \\right \\rceil
-                    = \\left \\lceil \\frac{V_{cav}}{\\frac{4}{3}\\pi R_a^3} \\
-                        \\right \\rceil
-
-        where :math:`V_{cav}` is the volume of the cavity, :math:`V_a` is the
-        volume of the atom in the cluster, :math:`R_a` is the radius of the
-        atom in the cluster, and :math:`\\lceil \\cdot \\rceil` is the ceiling
-        function.
-        """
-        return numpy.ceil(
-            self._cavity.volume
-            / ((4 / 3) * numpy.pi * self.universe.atoms.radii[0] ** 3)
-        ).astype(int)
-
-    @property
-    def number_of_atoms(self):
-        """
-        Get the number of atoms in the cluster.
-        """
-        return len(self._cluster)
