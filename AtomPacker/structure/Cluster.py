@@ -182,7 +182,7 @@ class Cluster:
             Additional keyword arguments to pass to the scatter_3d function of
             the plotly.express package.
         """
-        if self._cluster is not None:
+        if self._cluster is None:
             return
 
         x, y, z = self.coordinates.T
