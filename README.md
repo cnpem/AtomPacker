@@ -114,7 +114,7 @@ class Cavity {
 + numpy.ndarray coordinates
 + numpy.ndarray grid
 + Openings openings
-+ Universe universe
++ MDAnalysis.Universe universe
 + numpy.ndarray volume
 # float step
 # float probe_in
@@ -127,7 +127,7 @@ class Cavity {
 + preview(str renderer, float opacity, dict~str,object~ **kwargs) void
 + select_cavity(List~int~ indexes) void
 + save(str filename) void
-# _get_universe() Universe
+# _get_universe() MDAnalysis.Universe
 }
 class Cluster {
 + str atom_type
@@ -138,7 +138,7 @@ class Cluster {
 + int number_of_atoms
 + int maximum_number_of_atoms
 + pandas.DataFrame summary
-+ Universe universe
++ MDAnalysis.Universe universe
 + numpy.ndarray volume
 # Cavity cavity
 # ase.cluster.Cluster _cluster
@@ -146,7 +146,7 @@ class Cluster {
 + preview(str renderer, float opacity, dict~str,object~ **kwargs) void
 + save(str filename) void
 # _get_distances() numpy.ndarray
-# _get_universe() Universe  
+# _get_universe() MDAnalysis.Universe  
 }
 class Openings {
 + dict~str,float~ areas
@@ -154,13 +154,14 @@ class Openings {
 + dict~str,float~ diameters
 + numpy.ndarray grid
 + int nopenings
-+ Universe universe
++ MDAnalysis.Universe universe
 # float step
 # numpy.ndarray vertices
 + preview(str renderer, float opacity, dict~str,object~ **kwargs) void
 + save(str filename) void
 # _get_diameter() dict~str,float~
-# _get_universe() Universe
+# _get_universe() MDAnalysis.Universe
+}
 }
 ```
 
