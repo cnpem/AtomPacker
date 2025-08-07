@@ -79,6 +79,8 @@ def test_cluster_distances(pdb, cavity, cluster):
         positions[:, None, :] - positions[None, :, :], axis=-1
     )
     assert (distances == cage.cluster._cluster.get_all_distances()).all()
+    assert distances.shape == (len(cage.cluster._cluster), len(cage.cluster._cluster))
+    assert (distances >= 0).all()
 
 
 def test_cluster_radii(pdb, cavity, cluster):

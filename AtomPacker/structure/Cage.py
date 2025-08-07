@@ -468,7 +468,12 @@ detect_openings() first."
                         ),
                     ]
                 )
-                opacity = numpy.hstack([opacity, numpy.full(self.atomic.shape[0], 1.0)])
+                opacity = numpy.hstack(
+                    [
+                        opacity,
+                        numpy.full(self.cavity.openings.coordinates.shape[0], 1.0),
+                    ]
+                )
 
         # Preview the cage system in a 3D viewer
         x, y, z = coordinates.T
