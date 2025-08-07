@@ -13,7 +13,6 @@ the lattice constants for a given atom type and lattice type.
 
 __all__ = ["get_lattice_constants", "lattice_constants"]
 
-from typing import Any, Dict, Tuple
 from warnings import warn
 
 
@@ -77,7 +76,7 @@ lattice_constants. Using `ase.data.reference_states`."
         return None
 
 
-def _get_hcp(atom_type: str) -> Tuple[float, float] | None:
+def _get_hcp(atom_type: str) -> tuple[float, float] | None:
     """
     Get the lattice constant for HCP lattice.
 
@@ -138,7 +137,7 @@ lattice_constants. Using `ase.data.reference_states`."
 
 def get_lattice_constants(
     atom_type: str, lattice_type: str
-) -> Tuple[float, float, float] | Tuple[float, float] | float | None:
+) -> tuple[float, float, float] | tuple[float, float] | float | None:
     """
     Get the lattice constants for a given atom type and lattice type.
 
@@ -152,14 +151,15 @@ def get_lattice_constants(
 
     Returns
     -------
-    Tuple[float, float, float] | Tuple[float, float] | float | None
+    tuple[float, float, float] | tuple[float, float] | float | None
         The lattice constants for the given atom type and lattice type. If
         None, use `ase.data.reference_states`.
 
     Note
     ----
-    The lattice constants will be fetched from `AtomPacker.data.lattice_constants`
-    if available. If not, the experimental values from `ase.data` will be used.
+        The lattice constants will be fetched from
+        `AtomPacker.data.lattice_constants` if available. If not,
+        the experimental values from `ase.data` will be used.
 
     Raises
     ------
@@ -195,7 +195,7 @@ References
     Condensed Matter and Materials Data. Springer Berlin Heidelberg.
     https://doi.org/10.1007/3-540-30437-1.
 """
-lattice_constants: Dict[str, Dict[str, Any]] = {
+lattice_constants: dict[str, dict[str, object]] = {
     # H (1)
     "H": {
         "hexagonal": {

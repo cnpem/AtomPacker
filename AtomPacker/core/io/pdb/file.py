@@ -36,10 +36,13 @@ def load_pdb(filename: str, vdw: Optional[Dict[str, float]] = None) -> Universe:
     # Read PDB file in MDAnalysis.Universe
     universe = Universe(filename)
 
+    # Get van der Waals radii
+    try:
+        radii = _lookup_radii(universe.atoms.names, vdw)
+    except AttributeError:
+        radii = _lookup_radii(universe.atoms.elements, vdw)
+
     # Add radii to topology
-    universe.add_TopologyAttr(
-        "radii",
-        _lookup_radii(universe.atoms.names, vdw),
-    )
+    universe.add_TopologyAttr("radii", radii)
 
     return universe

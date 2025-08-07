@@ -4,7 +4,7 @@ import pytest
 
 from AtomPacker import Cage
 
-DATADIR = os.path.join(os.path.abspath(os.path.dirname(__file__)),  "data")
+DATADIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "data")
 
 
 @pytest.fixture
@@ -25,9 +25,10 @@ def test_pipeline_without_optimization(pdb):
         b=None,
         c=None,
         clashing_tolerance=0.0,
-        optimize=False,
-        angles=None,
-        translations=None,
+        angles=[0.0],
+        translations=[0.0],
+        save=False,
+        basedir=None,
     )
 
     assert cage.cluster is not None
@@ -47,9 +48,10 @@ def test_pipeline_with_optimization(pdb):
         b=None,
         c=None,
         clashing_tolerance=0.0,
-        optimize=True,
         angles=[-45, 0, 45],
         translations=[0.0, 0.2],
+        save=False,
+        basedir=None,
     )
 
     assert cage.cluster is not None

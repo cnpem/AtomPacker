@@ -57,14 +57,26 @@ Packing nanoparticle atoms, based on ASE nanocluster, and filter atoms inside a 
 >>> print(f"Cavity volume: {cage.cavity.volume} A^3")
 # Uncomment to save the cavity structure.
 >>> # cage.cavity.save("tests/cavity.pdb")
-# 3: Pack nanocluster into the cavity
+# 3: Detect openings in the cavity
+>>> cage.cavity.detect_openings()
+# Show openings areas
+>>> print(f"Openings areas: {cage.cavity.openings.areas}")
+# Show openings diameters
+>>> print(f"Openings diameters: {cage.cavity.openings.diameters}")
+# Uncomment to preview the openings structure for detection quality control.
+>>> # cage.cavity.openings.preview()
+# Uncomment to save the openings structure.
+>>> # cage.cavity.openings.save("tests/openings.pdb")
+# 4: Pack nanocluster into the cavity
 >>> cage.pack(atom_type="Au", lattice_type="fcc", a=None, b=None, c=None)
 # Uncomment to preview the cluster structure for quality control.
 >>> # cage.cavity.preview()
 # Uncomment to save the cluster structure.
 >>> # cage.cluster.save("tests/cluster.pdb")
-# Uncomment to preview the cage, cavity and cluster structure.
->>> # cage.preview(show_cavity=True, show_cluster=True)
+# Uncomment to preview the cage, cavity, openings and cluster structures.
+>>> # cage.preview(show_cavity=True, show_cluster=True, show_openings=True)
+# Show optimization details
+>>> print(cage.cluster.number_of_atoms)
 # Show summary
 >>> print(cage.cluster.summary)
 ```
@@ -77,8 +89,9 @@ The package is organized as follows:
 classDiagram
 direction LR
 Cage "1" o-- "1" Cavity : has
-Cage "1" o-- "1..*" Cluster : fits in
-Cavity "1" <|-- "1..*" Cluster : needs
+Cage "1" o-- "1" Cluster : fits in
+Cavity "1" o-- "1..*" Openings : has
+Cavity "1" <|-- "1" Cluster : needs
 namespace AtomPacker {
 class Cage {
 + numpy.ndarray atomic
@@ -87,18 +100,20 @@ class Cage {
 + Cluster cluster
 + numpy.ndarray coordinates
 + MDAnalysis.Universe universe
-+ detect_cavity(float step, float probe_in, float probe_out, float removal_distance, float volume_cutoff, str surface, int nthreads, bool verbose, Dict~str,Any~ **kwargs) Cavity
-+ load(filename) MDAnalysis.Universe
-+ pack(str lattice_type, str atom_type, float atom_radius, float a, float b, float c) ase.cluster.Cluster
-+ preview(bool show_cavity, bool show_cluster, str renderer, Dict~str,Any~ **kwargs) void
-# _build_cluster(str atom_type, str lattice_type, Tuple~float~ lattice_constants, numpy.ndarray center) ase.cluster.Cluster
++ detect_cavity(float step, float probe_in, float probe_out, float removal_distance, float volume_cutoff, str surface, int nthreads, bool verbose, dict~str,object~ **kwargs) void
++ load(filename) void
++ pack(str lattice_type, str atom_type, float atom_radius, float a, float b, float c) void
++ preview(bool show_cavity, bool show_cluster, str renderer, dict~str,object~ **kwargs) void
+# _build_cluster(str atom_type, str lattice_type, tuple~float~ lattice_constants, numpy.ndarray center) tuple~ase.cluster.Cluster, int~
 # _filter_clashing_atoms(ase.cluster.Cluster cluster, float clashing_tolerance) ase.cluster.Cluster
 # _filter_outside_cavity(ase.cluster.Cluster cluster) ase.cluster.Cluster
-# _get_cluster_layers(str atom_type, float factor) numpy.ndarray            
+# _get_cluster_layers(str atom_type, float factor) numpy.ndarray
+# _get_obb() tuple~numpy.ndarray, numpy.ndarray~
 }
 class Cavity {
 + numpy.ndarray coordinates
 + numpy.ndarray grid
++ Openings openings
 + Universe universe
 + numpy.ndarray volume
 # float step
@@ -108,7 +123,8 @@ class Cavity {
 # numpy.ndarray vertices
 # float volume_cutoff
 # str surface
-+ preview(str renderer, float opacity, Dict~str,Any~ **kwargs) void
++ detect_openings() void
++ preview(str renderer, float opacity, dict~str,object~ **kwargs) void
 + select_cavity(List~int~ indexes) void
 + save(str filename) void
 # _get_universe() Universe
@@ -117,7 +133,8 @@ class Cluster {
 + str atom_type
 + numpy.ndarray coordinates
 + str lattice_type
-+ Tuple~float~ lattice_constants
++ tuple~float~ lattice_constants
++ pandas.DataFrame log
 + int number_of_atoms
 + int maximum_number_of_atoms
 + pandas.DataFrame summary
@@ -126,11 +143,24 @@ class Cluster {
 # Cavity cavity
 # ase.cluster.Cluster _cluster
 + diameter(str method) float
-+ preview(str renderer, float opacity, Dict~str,Any~ **kwargs) void
++ preview(str renderer, float opacity, dict~str,object~ **kwargs) void
 + save(str filename) void
 # _get_distances() numpy.ndarray
 # _get_universe() Universe  
 }
+class Openings {
++ dict~str,float~ areas
++ numpy.ndarray coordinates
++ dict~str,float~ diameters
++ numpy.ndarray grid
++ int nopenings
++ Universe universe
+# float step
+# numpy.ndarray vertices
++ preview(str renderer, float opacity, dict~str,object~ **kwargs) void
++ save(str filename) void
+# _get_diameter() dict~str,float~
+# _get_universe() Universe
 }
 ```
 

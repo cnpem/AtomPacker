@@ -3,11 +3,11 @@
 # information.
 
 """
-A subpackage of *AtomPacker* that contains the `Cavity` class.
+A subpackage of *AtomPacker* that contains the `Openings` class.
 
-The `Cavity` class is used to represent a cavity in a molecular structure. It
-provides methods for detecting cavities, calculating cavity properties, and
-exporting cavity data.
+The `Openings` class is used to represent openings in a cavity structure.
+It provides methods for detecting openings, calculating their properties, and
+exporting opening data.
 """
 
 import os
@@ -16,66 +16,46 @@ import warnings
 import numpy
 from MDAnalysis import Universe
 from plotly.express import scatter_3d
+from pyKVFinder import openings, depth
 
 from ..core.grid import get_coordinates, get_depths
-from .Openings import Openings
 
 
-class Cavity:
+class Openings:
     """
-    A class representing a cavity in a molecular structure.
+    A class representing openings in a cavity structure.
 
-    The `Cavity` class provides methods for detecting cavities, calculating
-    cavity properties, and exporting cavity data.
+    The `Openings` class provides methods for detecting openings, calculating
+    their properties, and exporting openings data.
     """
 
-    def __init__(
-        self,
-        grid: numpy.ndarray,
-        step: float,
-        probe_in: float,
-        probe_out: float,
-        removal_distance: float,
-        volume_cutoff: float,
-        vertices: numpy.ndarray,
-        surface: str = "SES",
-    ):
+    def __init__(self, cavities: numpy.ndarray, step: float, vertices: numpy.ndarray):
         """
-        Create a new `AtomPacker.Cage` object.
+        Create a new `AtomPacker.Openings` object.
 
         Parameters
         ----------
-        grid : numpy.ndarray
-            The grid points of the cavity.
+        cavities : numpy.ndarray
+            The cavity points.
         step : float
             The step size of the grid.
-        probe_in : float
-            The radius of the Probe In.
-        probe_out : float
-            The radius of the Probe Out.
-        removal_distance : float
-            The removal distance.
-        volume_cutoff : float
-            The volume cutoff.
         vertices : numpy.ndarray
             The vertices (origin, X-axis, Y-axis, Z-axis) of the grid.
-        surface : str, optional
-            Surface representation. Keywords options are SES (Solvent Excluded
-            Surface) or SAS (Solvent Accessible Surface), by default SES.
         """
-        self.grid = grid
-        self._step = step
-        self._probe_in = probe_in
-        self._probe_out = probe_out
-        self._removal_distance = removal_distance
-        self._volume_cutoff = volume_cutoff
-        self._vertices = vertices
-        self._surface = surface
+        self.nopenings: int
+        self.grid: numpy.ndarray
+        self.areas: dict[str, float]
+
+        self.nopenings, self.grid, self.areas = self._detect(cavities, step)
+        self.diameters: dict[str, float] = self._get_diameter()
+
+        self._step: float = step
+        self._vertices: numpy.ndarray = vertices
+
         self.universe: Universe = self._get_universe()
-        self.openings: Openings | None = None
 
     def __repr__(self) -> str:
-        return f"<AtomPacker.structure.Cavity at {hex(id(self))}>"
+        return f"<AtomPacker.structure.Openings at {hex(id(self))}>"
 
     @property
     def coordinates(self) -> numpy.ndarray:
@@ -84,40 +64,6 @@ class Cavity:
         """
         return self.universe.atoms.positions
 
-    @property
-    def volume(self) -> numpy.float64:
-        """
-        Calculate the volume of the cavity.
-
-        This method calculates the volume of the cavity represented by the
-        `Cavity` object. It uses a grid-based algorithm to estimate the volume
-        of the cavity based on the number of grid points inside the cavity.
-        """
-        if self.grid.max() > 2:
-            warnings.warn(
-                "Cavity has more than one cavity. Returning total volume.\
-Users can select cavities using select_cavity method."
-            )
-        return ((self.grid > 1).sum() * (self._step**3)).round(2)
-
-    def detect_openings(self) -> None:
-        """
-        Detect openings in the cavity.
-
-        This method detects openings in the cavity represented by the `Cavity`
-        object. It uses a grid-based algorithm to identify openings based on
-        the depth of the cavity points.
-
-        Returns
-        -------
-        Openings
-            An `AtomPacker.Openings` object containing the detected openings.
-        """
-        if self.grid.max() > 2:
-            warnings.warn("Cavity has more than one cavity.")
-
-        self.openings = Openings(self.grid, self._step, self._vertices)
-
     def preview(
         self,
         renderer: str = "browser",
@@ -125,7 +71,7 @@ Users can select cavities using select_cavity method."
         **kwargs: dict[str, object],
     ) -> None:
         """
-        Preview the cavity in a 3D viewer.
+        Preview the openings in a 3D viewer.
 
         Parameters
         ----------
@@ -143,13 +89,11 @@ Users can select cavities using select_cavity method."
         if self.grid is not None:
             x, y, z = self.coordinates.T
             radii = self.universe.atoms.radii
-            labels = self.universe.atoms.tempfactors
             fig = scatter_3d(
                 x=x,
                 y=y,
                 z=z,
                 size=(radii * 2),
-                color=labels,
                 color_continuous_scale="rainbow",
                 opacity=opacity,
                 labels={"color": "Depth"},
@@ -190,54 +134,14 @@ Users can select cavities using select_cavity method."
             )
             fig.show(renderer)
 
-    def select_cavity(self, indices: list[int]) -> None:
+    def save(self, filename: str = "openings.pdb") -> None:
         """
-        Select a cavity from the list of detected cavities.
-
-        This method selects a cavity from the list of detected cavities based
-        on the indices of the cavity in the list.
+        Save the openings to a PDB file.
 
         Parameters
         ----------
-        indices : list[int]
-            The indices of the cavities to select.
-            Cavity points in the 3D grid (grid[nx][ny][nz]). Cavities
-            array has integer labels in each position, that are:
-
-            * -1: solvent points;
-
-            * 0: cage points;
-
-            * 1: empty space points;
-
-            * >=2: cavity points.
-        """
-        # Copy cavities
-        selected = numpy.copy(self.grid)
-
-        # When outside selection, change cavities tags to 1
-        for cav in range(2, self.grid.max() + 1):
-            if cav not in indices:
-                selected[self.grid == cav] = 1
-
-        # Update grid
-        self.grid = selected
-        self.universe = self._get_universe()
-
-    def save(self, filename: str = "cavity.pdb") -> None:
-        """
-        Export the cavity data to a file.
-
-        This method exports the cavity data represented by the `Cavity` object
-        to a file in a specified format. The supported formats include PDB, and
-        XYZ.
-
-        Parameters
-        ----------
-        filename : str
-            The name of the file to export the cavity data to. The filename of
-            the structure file. The file format is determined by the suffix.
-            Supported formats are: .pdb, .xyz.
+        filename : str, optional
+            The name of the output PDB file (default is "openings.pdb").
         """
         # We only need the suffix here
         _, ext = os.path.splitext(filename)
@@ -249,12 +153,72 @@ Users can select cavities using select_cavity method."
 .pdb, .xyz."
             )
 
-        # Save the cavity to a file
+        # Save the openings to a file
         self.universe.atoms.write(filename)
+
+    def _detect(
+        self, cavities: numpy.ndarray, step: float
+    ) -> tuple[int, numpy.ndarray, dict[str, float]]:
+        """
+        Detect openings in the cavity grid.
+
+        Parameters
+        ----------
+        cavities : numpy.ndarray
+            The cavity points.
+        step : float
+            The step size of the grid.
+
+        Returns
+        -------
+        nopenings : int
+            The number of openings detected.
+        ogrid : numpy.ndarray
+            The grid of openings.
+        oarea : dict[str, float]
+            The area of each opening.
+        """
+        if cavities.max() > 2:
+            warnings.warn("Cavity has more than one cavity.")
+
+        # Calculate depth of cavity points
+        depths, _, _ = depth(cavities, step)
+
+        # Calculate openings and area of openings
+        nopenings, grid, aopenings = openings(cavities, depths, step=step)
+
+        # Flatten and sort opening areas
+        areas = {
+            key: opening
+            for cavity in aopenings.values()
+            for key, opening in cavity.items()
+        }
+        areas = dict(sorted(areas.items()))
+
+        return nopenings, grid, areas
+
+    def _get_diameter(self) -> dict[str, float]:
+        """
+        Get the diameter of each opening.
+
+        The diameter is calculated from the area using the formula:
+
+            diameter = 2 * sqrt(area / π)
+
+        Returns
+        -------
+        diameters : dict[str, float]
+            The diameter of each opening.
+        """
+        diameters = {}
+        for key, area in self.areas.items():
+            diameters[key] = float(2 * numpy.sqrt(area / numpy.pi))
+
+        return diameters
 
     def _get_universe(self) -> Universe:
         """
-        Get the `MDAnalysis.Universe` object of the cavity.
+        Get the `MDAnalysis.Universe` object of the openings.
 
         This method creates an `MDAnalysis.Universe` object from the cavity
         grid data.
@@ -272,6 +236,20 @@ Users can select cavities using select_cavity method."
             self.grid, self._step, self._vertices
         )
 
+        # Assign chainIDs based on opening indices
+        indexes = (
+            self.grid[
+                tuple(
+                    ((universe.atoms.positions - self._vertices[0]) / self._step)
+                    .round()
+                    .astype(int)
+                    .T
+                )
+            ]
+            - 1
+        ).astype(int)
+        chain_ids = [chr(65 + idx) for idx in indexes]
+
         # Add CRYST1 record
         universe.dimensions = [1.0, 1.0, 1.0, 90.0, 90.0, 90.0]
 
@@ -286,8 +264,8 @@ Users can select cavities using select_cavity method."
         )
         universe.add_TopologyAttr("resids", [1])  # resids
         universe.add_TopologyAttr("resnums", [1])  # resnums
-        universe.add_TopologyAttr("resnames", ["CAV"])  # resnames
-        universe.add_TopologyAttr("chainIDs", ["X"] * n)  # chainIDs
+        universe.add_TopologyAttr("resnames", ["OPE"])  # resnames
+        universe.add_TopologyAttr("chainIDs", chain_ids)  # chainIDs
         universe.add_TopologyAttr("segids", [" "])  # segids
         universe.add_TopologyAttr("icodes", [" "])  # icodes
         universe.add_TopologyAttr("altLocs", [" "] * n)  # altLocs
