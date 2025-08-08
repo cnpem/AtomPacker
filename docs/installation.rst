@@ -12,6 +12,7 @@ The requirements for installing AtomPacker are:
 * plotly
 * pyKVFinder
 * scikit-learn
+* tqdm
 
 To install the latest release on `PyPI <https://pypi.org/project/AtomPacker>`_, run:
 

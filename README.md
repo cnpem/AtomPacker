@@ -23,6 +23,7 @@ See also:
 - [plotly](https://pypi.org/project/plotly)
 - [pyKVFinder](https://pypi.org/project/pyKVFinder)
 - [scikit-learn](https://pypi.org/project/scikit-learn)
+- [tqdm](https://pypi.org/project/tqdm)
 
 ## Installation
 
