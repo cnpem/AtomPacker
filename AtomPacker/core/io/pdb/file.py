@@ -39,7 +39,7 @@ def load_pdb(filename: str, vdw: Optional[Dict[str, float]] = None) -> Universe:
     # Get van der Waals radii
     try:
         radii = _lookup_radii(universe.atoms.names, vdw)
-    except AttributeError:
+    except KeyError:
         radii = _lookup_radii(universe.atoms.elements, vdw)
 
     # Add radii to topology
