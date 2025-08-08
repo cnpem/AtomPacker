@@ -5,6 +5,7 @@ Welcome to the **AtomPacker** documentation, this page was built to help you get
 
 * `Installation <installation.html>`_
 * `Tutorial <tutorial.html>`_
+* `Quick Start <quick-start.html>`_
 * `API reference <api.html>`_
 * `GitHub repository <https://github.com/cnpem/AtomPacker>`_
 * `About <about.html>`_
@@ -16,6 +17,7 @@ Welcome to the **AtomPacker** documentation, this page was built to help you get
    :hidden:
 
    installation
+   quick-start
    tutorial
    api
    about
