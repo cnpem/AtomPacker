@@ -9,11 +9,11 @@ molecular structures, packing nanoclusters into these cavities, and exporting \
 the resulting structures.
 """
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 __name__ = "AtomPacker"
 license = "GNU GPL-3.0 License"
 
 from .core import (get_coordinates, get_depths, load_mmcif, load_mol2,
                    load_pdb, load_xyz)
-from .structure import (Cage, Cavity, Cluster, get_lattice_constants,
+from .structure import (Cage, Cavity, Cluster, Openings, get_lattice_constants,
                         lattice_constants)

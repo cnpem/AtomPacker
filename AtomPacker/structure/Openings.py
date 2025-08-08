@@ -29,7 +29,7 @@ class Openings:
     their properties, and exporting openings data.
     """
 
-    def __init__(self, cavities: numpy.ndarray, step: float, vertices: numpy.ndarray):
+    def __init__(self, cavities: numpy.ndarray, step: float, vertices: numpy.ndarray, verbose: bool = False):
         """
         Create a new `AtomPacker.Openings` object.
 
@@ -41,12 +41,14 @@ class Openings:
             The step size of the grid.
         vertices : numpy.ndarray
             The vertices (origin, X-axis, Y-axis, Z-axis) of the grid.
+        verbose : bool, optional
+            If True, print detailed information during processing (default is False).
         """
         self.nopenings: int
         self.grid: numpy.ndarray
         self.areas: dict[str, float]
 
-        self.nopenings, self.grid, self.areas = self._detect(cavities, step)
+        self.nopenings, self.grid, self.areas = self._detect(cavities, step, verbose=verbose)
         self.diameters: dict[str, float] = self._get_diameter()
 
         self._step: float = step
@@ -157,7 +159,10 @@ class Openings:
         self.universe.atoms.write(filename)
 
     def _detect(
-        self, cavities: numpy.ndarray, step: float
+        self,
+        cavities: numpy.ndarray,
+        step: float,
+        verbose: bool = False,
     ) -> tuple[int, numpy.ndarray, dict[str, float]]:
         """
         Detect openings in the cavity grid.
@@ -168,6 +173,8 @@ class Openings:
             The cavity points.
         step : float
             The step size of the grid.
+        verbose : bool, optional
+            If True, print detailed information during processing (default is False).
 
         Returns
         -------
@@ -182,10 +189,10 @@ class Openings:
             warnings.warn("Cavity has more than one cavity.")
 
         # Calculate depth of cavity points
-        depths, _, _ = depth(cavities, step)
+        depths, _, _ = depth(cavities, step, verbose=verbose)
 
         # Calculate openings and area of openings
-        nopenings, grid, aopenings = openings(cavities, depths, step=step)
+        nopenings, grid, aopenings = openings(cavities, depths, step=step, verbose=verbose)
 
         # Flatten and sort opening areas
         areas = {

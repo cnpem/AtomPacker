@@ -25,6 +25,7 @@ from MDAnalysis import Universe
 from plotly.express import scatter_3d
 from pyKVFinder import detect, get_vertices
 from sklearn.decomposition import PCA
+from tqdm import tqdm
 
 from ..core import load_mmcif, load_mol2, load_pdb, load_xyz
 from .Cavity import Cavity
@@ -275,8 +276,9 @@ are: .cif, .pdb, .xyz, .mol2."
         clashing_tolerance: float = 0.0,
         angles: numpy.ndarray | list[float] | None = None,
         translations: numpy.ndarray | list[float] | None = None,
-        save: bool = False,
-        basedir: str | None = None,
+        optsave: bool = False,
+        optdir: str | None = None,
+        verbose: bool = False,
     ) -> None:
         """
         Pack a cluster of atoms into the cage structure.
@@ -303,11 +305,13 @@ are: .cif, .pdb, .xyz, .mol2."
         translations : numpy.ndarray | list[float] | None, optional
             Translation values for cluster optimization. If None, uses
             [-0.2, 0.0, 0.2].
-        save : bool, optional
+        optsave : bool, optional
             If True, saves each optimization step as a PDB file. Default is
             False.
-        basedir : str | None, optional
+        optdir : str | None, optional
             Directory to save files. If None, uses current working directory.
+        verbose : bool, optional
+            If True, prints detailed information during processing (default is False).
 
         Raises
         ------
@@ -325,17 +329,33 @@ are: .cif, .pdb, .xyz, .mol2."
         if lattice_type == "hcp":
             if (a is None) and (c is None):
                 lattice_constants = get_lattice_constants(atom_type, lattice_type)
+                if verbose:
+                    print(
+                        f"> Using default lattice constants for {atom_type} in {lattice_type} lattice: {lattice_constants}"
+                    )
             elif (a is None) or (c is None):
                 if a is None:
                     a, _ = get_lattice_constants(atom_type, lattice_type)
+                    if verbose:
+                        print(
+                            f"> Using default lattice constant 'a' for {atom_type} in {lattice_type} lattice: {a}"
+                        )
                 if c is None:
                     _, c = get_lattice_constants(atom_type, lattice_type)
+                    if verbose:
+                        print(
+                            f"> Using default lattice constant 'c' for {atom_type} in {lattice_type} lattice: {c}"
+                        )
                 lattice_constants = (a, c)
             else:
                 lattice_constants = (a, c)
         elif lattice_type in ["fcc", "bcc", "sc"]:
             if a is None:
                 lattice_constants = get_lattice_constants(atom_type, lattice_type)
+                if verbose:
+                    print(
+                        f"> Using default lattice constant for {atom_type} in {lattice_type} lattice: {lattice_constants}"
+                    )
             else:
                 lattice_constants = a
         else:
@@ -357,8 +377,9 @@ are: .cif, .pdb, .xyz, .mol2."
             clashing_tolerance=clashing_tolerance,
             angles=angles,
             translations=translations,
-            save=save,
-            basedir=basedir,
+            optsave=optsave,
+            optdir=optdir,
+            verbose=verbose,
         )
 
         # Create `AtomPacker.structure.Cluster` object
@@ -537,8 +558,9 @@ detect_openings() first."
         clashing_tolerance: float = 0.0,
         angles: numpy.ndarray | list[float] | None = None,
         translations: numpy.ndarray | list[float] | None = None,
-        save: bool = False,
-        basedir: str | None = None,
+        optsave: bool = False,
+        optdir: str | None = None,
+        verbose: bool = False,
     ) -> tuple[ase.cluster.Cluster, pandas.DataFrame]:
         """
         Build the cluster of atoms inside cavity.
@@ -566,11 +588,13 @@ detect_openings() first."
         translations : numpy.ndarray | list[float] | None, optional
             Translation values for cluster optimization. If None, uses
             [-0.2, 0.0, 0.2].
-        save : bool, optional
+        optsave : bool, optional
             If True, saves each optimization step as a PDB file. Default is
             False.
-        basedir : str | None, optional
+        optdir : str | None, optional
             Directory to save files. If None, uses current working directory.
+        verbose : bool, optional
+            If True, prints detailed information during processing (default is False).
 
         Returns
         -------
@@ -581,10 +605,10 @@ detect_openings() first."
             of atoms, the radius, the lattice constants, and the rotation and
             translation angles.
         """
-        if basedir is None:
-            basedir = os.getcwd()
-        elif not os.path.exists(basedir):
-            os.makedirs(basedir)
+        if optdir is None:
+            optdir = os.getcwd()
+        elif not os.path.exists(optdir):
+            os.makedirs(optdir)
 
         # Create dummy surfaces
         surfaces = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
@@ -649,14 +673,18 @@ detect_openings() first."
         # Create rotation angles and translations for the cluster
         if angles is None:
             angles = numpy.arange(start=-75, stop=90, step=25)
+
         if translations is None:
             translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
 
         # Iterate over all possible combinations of angles and translations
         log = []
-        for phi, theta, psi, x, y, z in itertools.product(
-            angles, angles, angles, translations, translations, translations
-        ):
+        combinations = list(
+            itertools.product(
+                angles, angles, angles, translations, translations, translations
+            )
+        )
+        for phi, theta, psi, x, y, z in tqdm(combinations, desc="> Optimizing cluster", leave=verbose):
             # Create a copy of the cluster
             _tmp = deepcopy(cluster)
 
@@ -673,9 +701,9 @@ detect_openings() first."
             )
 
             # Save the cluster if requested
-            if save:
+            if optsave:
                 filename = f"cluster_{x:.2f}_{y:.2f}_{z:.2f}_{phi:.2f}_{theta:.2f}_{psi:.2f}.pdb"
-                _tmp.write(os.path.join(basedir, filename))
+                _tmp.write(os.path.join(optdir, filename))
 
             # Get the maximum diameter in the cluster
             diameter = _tmp.get_all_distances().max()

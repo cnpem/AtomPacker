@@ -100,13 +100,18 @@ Users can select cavities using select_cavity method."
             )
         return ((self.grid > 1).sum() * (self._step**3)).round(2)
 
-    def detect_openings(self) -> None:
+    def detect_openings(self, verbose: bool = False) -> None:
         """
         Detect openings in the cavity.
 
         This method detects openings in the cavity represented by the `Cavity`
         object. It uses a grid-based algorithm to identify openings based on
         the depth of the cavity points.
+
+        Parameters
+        ----------
+        verbose : bool, optional
+            If True, print detailed information during processing (default is False).
 
         Returns
         -------
@@ -116,7 +121,7 @@ Users can select cavities using select_cavity method."
         if self.grid.max() > 2:
             warnings.warn("Cavity has more than one cavity.")
 
-        self.openings = Openings(self.grid, self._step, self._vertices)
+        self.openings = Openings(self.grid, self._step, self._vertices, verbose=verbose)
 
     def preview(
         self,
