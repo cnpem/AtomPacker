@@ -334,8 +334,8 @@ def test_build_cluster(pdb):
         clashing_tolerance=0.0,
         angles=[0.0],
         translations=[0.0],
-        save=False,
-        basedir="results",
+        optsave=False,
+        optdir=None,
     )
     assert isinstance(_cluster, ase.cluster.Cluster)
 
@@ -367,8 +367,8 @@ def test_pack(pdb):
         clashing_tolerance=0.0,
         angles=[0.0],
         translations=[0.0],
-        save=False,
-        basedir="results",
+        optsave=False,
+        optdir=None,
     )
 
     assert isinstance(cage.cluster, Cluster)
@@ -388,8 +388,8 @@ def test_pack_with_invalid_lattice_type(pdb):
             clashing_tolerance=0.0,
             angles=[0.0],
             translations=[0.0],
-            save=False,
-            basedir="results",
+            optsave=False,
+            optdir=None,
         )
 
 
@@ -405,8 +405,8 @@ def test_pack_with_negative_clashing_tolerance(pdb):
             clashing_tolerance=-1.0,
             angles=[0.0],
             translations=[0.0],
-            save=False,
-            basedir="results",
+            optsave=False,
+            optdir=None,
         )
 
 
@@ -420,8 +420,8 @@ def test_pack_for_unloaded_cage():
             clashing_tolerance=0.0,
             angles=[0.0],
             translations=[0.0],
-            save=False,
-            basedir="results",
+            optsave=False,
+            optdir=None,
         )
 
 
@@ -437,8 +437,8 @@ def test_pack_without_cavity(pdb):
             clashing_tolerance=0.0,
             angles=[0.0],
             translations=[0.0],
-            save=False,
-            basedir="results",
+            optsave=False,
+            optdir=None,
         )
 
 

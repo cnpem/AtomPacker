@@ -27,8 +27,8 @@ def test_pipeline_without_optimization(pdb):
         clashing_tolerance=0.0,
         angles=[0.0],
         translations=[0.0],
-        save=False,
-        basedir=None,
+        optsave=False,
+        optdir=None,
     )
 
     assert cage.cluster is not None
@@ -50,8 +50,8 @@ def test_pipeline_with_optimization(pdb):
         clashing_tolerance=0.0,
         angles=[-45, 0, 45],
         translations=[0.0, 0.2],
-        save=False,
-        basedir=None,
+        optsave=False,
+        optdir=None,
     )
 
     assert cage.cluster is not None
