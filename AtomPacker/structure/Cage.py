@@ -274,8 +274,8 @@ are: .cif, .pdb, .xyz, .mol2."
         b: float | None = None,
         c: float | None = None,
         clashing_tolerance: float = 0.0,
-        angles: numpy.ndarray | list[float] | None = None,
-        translations: numpy.ndarray | list[float] | None = None,
+        angles: numpy.ndarray | list[float] = [0.0],
+        translations: numpy.ndarray | list[float] = [0.0],
         optsave: bool = False,
         optdir: str | None = None,
         verbose: bool = False,
@@ -299,12 +299,16 @@ are: .cif, .pdb, .xyz, .mol2."
         clashing_tolerance : float, optional
             Minimum allowed distance (Å) between cluster and cage atoms.
             Default is 0.0.
-        angles : numpy.ndarray | list[float] | None, optional
-            Rotation angles for cluster optimization. If None, uses [-75, -50,
-            -25, 0, 25, 50, 75].
-        translations : numpy.ndarray | list[float] | None, optional
-            Translation values for cluster optimization. If None, uses
-            [-0.2, 0.0, 0.2].
+        angles : numpy.ndarray | list[float], optional
+            Rotation angles for cluster optimization. If not specified, no optimization
+            is performed. Default is [0.0].
+            If specified, angles should be a list or numpy array of angles in degrees.
+            Example: [-75, -50, -25, 0, 25, 50, 75].
+        translations : numpy.ndarray | list[float], optional
+            Translation values for cluster optimization. If not specified, no optimization
+            is performed. Default is [0.0].
+            If specified, translations should be a list or numpy array of translation
+            values in Angstroms. Example: [-0.2, 0.0, 0.2].
         optsave : bool, optional
             If True, saves each optimization step as a PDB file. Default is
             False.
@@ -556,8 +560,8 @@ detect_openings() first."
         lattice_constants: tuple[float, float] | tuple[float] | None,
         center: numpy.ndarray,
         clashing_tolerance: float = 0.0,
-        angles: numpy.ndarray | list[float] | None = None,
-        translations: numpy.ndarray | list[float] | None = None,
+        angles: numpy.ndarray | list[float] = [0.0],
+        translations: numpy.ndarray | list[float] = [0.0],
         optsave: bool = False,
         optdir: str | None = None,
         verbose: bool = False,
@@ -582,12 +586,16 @@ detect_openings() first."
         clashing_tolerance : float, optional
             Minimum allowed distance (Å) between cluster and cage atoms.
             Default is 0.0.
-        angles : numpy.ndarray | list[float] | None, optional
-            Rotation angles for cluster optimization. If None, uses [-75, -50,
-            -25, 0, 25, 50, 75].
-        translations : numpy.ndarray | list[float] | None, optional
-            Translation values for cluster optimization. If None, uses
-            [-0.2, 0.0, 0.2].
+        angles : numpy.ndarray | list[float], optional
+            Rotation angles for cluster optimization. If not specified, no optimization
+            is performed. Default is [0.0].
+            If specified, angles should be a list or numpy array of angles in degrees.
+            Example: [-75, -50, -25, 0, 25, 50, 75].
+        translations : numpy.ndarray | list[float], optional
+            Translation values for cluster optimization. If not specified, no optimization
+            is performed. Default is [0.0].
+            If specified, translations should be a list or numpy array of translation
+            values in Angstroms. Example: [-0.2, 0.0, 0.2].
         optsave : bool, optional
             If True, saves each optimization step as a PDB file. Default is
             False.
@@ -670,13 +678,6 @@ detect_openings() first."
         # Get lattice constants for nanocluster
         cluster.info.update({"lattice_constants": lattice_constants})
 
-        # Create rotation angles and translations for the cluster
-        if angles is None:
-            angles = numpy.arange(start=-75, stop=90, step=25)
-
-        if translations is None:
-            translations = numpy.arange(start=-0.2, stop=0.21, step=0.2)
-
         # Iterate over all possible combinations of angles and translations
         log = []
         combinations = list(
@@ -747,8 +748,8 @@ detect_openings() first."
         # Convert optimization to DataFrame
         log = pandas.DataFrame(log)
 
-        # Get the best cluster based on the maximum diameter
-        idx = log["Maximum diameter (Å)"].idxmax()
+        # Get the best cluster based on the volume diameter
+        idx = log["Volume diameter (Å)"].idxmax()
         x, y, z, phi, theta, psi = log.loc[idx, ["x", "y", "z", "phi", "theta", "psi"]]
 
         # Rotate and translate the cluster
