@@ -278,7 +278,9 @@ Now that the cavity and its openings have been detected, you can pack nanopartic
 
 .. note::
 
-    To apply an optimization algorithm to the packed cluster, set angles and translations to ``None``. Yet, you can also specify a fixed set of angles and translations to explore specific configurations.
+    To apply an optimization algorithm to the packed cluster, set angles and translations. Translations should be a list or numpy array of angles in degrees, and translations should be a list or numpy array of translation values in Angstroms. For example: 
+    * angles = [-75, -50, -25, 0, 25, 50, 75]
+    * translations = [-0.2, 0.0, 0.2]
 
 The packed cluster will be stored in the ``cluster`` attribute of the Cage object.
 
