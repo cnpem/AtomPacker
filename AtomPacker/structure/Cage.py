@@ -587,22 +587,23 @@ detect_openings() first."
             Minimum allowed distance (Å) between cluster and cage atoms.
             Default is 0.0.
         angles : numpy.ndarray | list[float], optional
-            Rotation angles for cluster optimization. If not specified, no optimization
-            is performed. Default is [0.0].
-            If specified, angles should be a list or numpy array of angles in degrees.
-            Example: [-75, -50, -25, 0, 25, 50, 75].
+            Rotation angles for cluster optimization. If not specified, no
+            optimization is performed. Default is [0.0].
+            If specified, angles should be a list or numpy array of angles in
+            degrees. Example: [-75, -50, -25, 0, 25, 50, 75].
         translations : numpy.ndarray | list[float], optional
-            Translation values for cluster optimization. If not specified, no optimization
-            is performed. Default is [0.0].
-            If specified, translations should be a list or numpy array of translation
-            values in Angstroms. Example: [-0.2, 0.0, 0.2].
+            Translation values for cluster optimization. If not specified, no
+            optimization is performed. Default is [0.0].
+            If specified, translations should be a list or numpy array of
+            translation values in Angstroms. Example: [-0.2, 0.0, 0.2].
         optsave : bool, optional
             If True, saves each optimization step as a PDB file. Default is
             False.
         optdir : str | None, optional
             Directory to save files. If None, uses current working directory.
         verbose : bool, optional
-            If True, prints detailed information during processing (default is False).
+            If True, prints detailed information during processing (default is
+            False).
 
         Returns
         -------
@@ -613,10 +614,11 @@ detect_openings() first."
             of atoms, the radius, the lattice constants, and the rotation and
             translation angles.
         """
-        if optdir is None:
-            optdir = os.getcwd()
-        elif not os.path.exists(optdir):
-            os.makedirs(optdir)
+        if optsave:
+            if optdir is None:
+                optdir = os.getcwd()
+            elif not os.path.exists(optdir):
+                os.makedirs(optdir)
 
         # Create dummy surfaces
         surfaces = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
