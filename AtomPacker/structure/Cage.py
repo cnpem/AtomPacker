@@ -21,6 +21,7 @@ import pandas
 from ase.cluster.cubic import BodyCenteredCubic, FaceCenteredCubic, SimpleCubic
 from ase.cluster.hexagonal import HexagonalClosedPacked
 from ase.data import atomic_numbers, covalent_radii
+from joblib import Parallel, delayed
 from MDAnalysis import Universe
 from plotly.express import scatter_3d
 from pyKVFinder import detect, get_vertices
@@ -139,7 +140,7 @@ class Cage:
             Surface) or SAS (Solvent Accessible Surface), by default SES.
         nthreads : int, optional
             Number of threads, by default None. If None, the number of threads
-            is `os.cpu_count() - 1`.
+            is `os.cpu_count() - 1`. If -1, uses all available threads.
         verbose : bool, optional
             Print extra information to standard output, by default False.
         kwargs : dict[str, object], optional
@@ -278,6 +279,7 @@ are: .cif, .pdb, .xyz, .mol2."
         translations: numpy.ndarray | list[float] = [0.0],
         optsave: bool = False,
         optdir: str | None = None,
+        nthreads: int | None = None,
         verbose: bool = False,
     ) -> None:
         """
@@ -300,22 +302,27 @@ are: .cif, .pdb, .xyz, .mol2."
             Minimum allowed distance (Å) between cluster and cage atoms.
             Default is 0.0.
         angles : numpy.ndarray | list[float], optional
-            Rotation angles for cluster optimization. If not specified, no optimization
-            is performed. Default is [0.0].
-            If specified, angles should be a list or numpy array of angles in degrees.
-            Example: [-75, -50, -25, 0, 25, 50, 75].
+            Rotation angles for cluster optimization. If not specified, no
+            optimization is performed. Default is [0.0].
+            If specified, angles should be a list or numpy array of angles in
+            degrees. Example: [-75, -50, -25, 0, 25, 50, 75].
         translations : numpy.ndarray | list[float], optional
-            Translation values for cluster optimization. If not specified, no optimization
-            is performed. Default is [0.0].
-            If specified, translations should be a list or numpy array of translation
-            values in Angstroms. Example: [-0.2, 0.0, 0.2].
+            Translation values for cluster optimization. If not specified, no
+            optimization is performed. Default is [0.0].
+            If specified, translations should be a list or numpy array of
+            translation values in Angstroms. Example: [-0.2, 0.0, 0.2].
         optsave : bool, optional
             If True, saves each optimization step as a PDB file. Default is
             False.
         optdir : str | None, optional
             Directory to save files. If None, uses current working directory.
+        nthreads : int | None, optional
+            Number of threads to use for parallel processing. If None, uses
+            `os.cpu_count() - 1`. Default is None. If -1, uses all available
+            threads.
         verbose : bool, optional
-            If True, prints detailed information during processing (default is False).
+            If True, prints detailed information during processing (default is
+            False).
 
         Raises
         ------
@@ -328,6 +335,9 @@ are: .cif, .pdb, .xyz, .mol2."
 
         if self.cavity is None:
             raise ValueError("No cavity detected. Please run detect_cavity() first.")
+
+        if nthreads is None:
+            nthreads = os.cpu_count() - 1
 
         # Get lattice constants
         if lattice_type == "hcp":
@@ -383,6 +393,7 @@ are: .cif, .pdb, .xyz, .mol2."
             translations=translations,
             optsave=optsave,
             optdir=optdir,
+            nthreads=nthreads,
             verbose=verbose,
         )
 
@@ -564,6 +575,7 @@ detect_openings() first."
         translations: numpy.ndarray | list[float] = [0.0],
         optsave: bool = False,
         optdir: str | None = None,
+        nthreads: int | None = None,
         verbose: bool = False,
     ) -> tuple[ase.cluster.Cluster, pandas.DataFrame]:
         """
@@ -601,6 +613,10 @@ detect_openings() first."
             False.
         optdir : str | None, optional
             Directory to save files. If None, uses current working directory.
+        nthreads : int | None, optional
+            Number of threads to use for parallel processing. If None, uses
+            `os.cpu_count() - 1`. Default is None. If -1, uses all available
+            threads.
         verbose : bool, optional
             If True, prints detailed information during processing (default is
             False).
@@ -619,6 +635,9 @@ detect_openings() first."
                 optdir = os.getcwd()
             elif not os.path.exists(optdir):
                 os.makedirs(optdir)
+
+        if nthreads is None:
+            nthreads = os.cpu_count() - 1
 
         # Create dummy surfaces
         surfaces = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
@@ -680,15 +699,10 @@ detect_openings() first."
         # Get lattice constants for nanocluster
         cluster.info.update({"lattice_constants": lattice_constants})
 
-        # Iterate over all possible combinations of angles and translations
-        log = []
-        combinations = list(
-            itertools.product(
-                angles, angles, angles, translations, translations, translations
-            )
-        )
-        for phi, theta, psi, x, y, z in tqdm(combinations, desc="> Optimizing cluster", leave=verbose):
-            # Create a copy of the cluster
+        def _evaluate_cluster_configuration(self, phi, theta, psi, x, y, z, cluster):
+            """
+            Helper function to parallelize the optimization process.
+            """
             _tmp = deepcopy(cluster)
 
             # Rotate and translate the cluster
@@ -722,30 +736,51 @@ detect_openings() first."
             # Get number of atoms in the cluster
             number_of_atoms = len(_tmp)
 
-            # Update the cluster summary
-            log.append(
-                {
-                    "x": x,
-                    "y": y,
-                    "z": z,
-                    "phi": phi,
-                    "theta": theta,
-                    "psi": psi,
-                    "Atom Type": atom_type,
-                    "Atom Radius": radii,
-                    "Cavity Volume (Å³)": self.cavity.volume,
-                    "Maximum diameter (Å)": diameter,
-                    "Shape diameter (Å)": _tmp.get_diameter(method="shape"),
-                    "Volume diameter (Å)": _tmp.get_diameter(method="volume"),
-                    "Lattice Constants": lattice_constants,
-                    "Lattice Type": lattice_type,
-                    "Maximum Number of Atoms": maximum_number_of_atoms,
-                    "Number of Atoms": number_of_atoms,
-                }
-            )
+            return {
+                "x": x,
+                "y": y,
+                "z": z,
+                "phi": phi,
+                "theta": theta,
+                "psi": psi,
+                "Atom Type": atom_type,
+                "Atom Radius": radii,
+                "Cavity Volume (Å³)": self.cavity.volume,
+                "Maximum diameter (Å)": diameter,
+                "Shape diameter (Å)": (
+                    _tmp.get_diameter(method="shape") if len(_tmp) > 0 else 0.0
+                ),
+                "Volume diameter (Å)": (
+                    _tmp.get_diameter(method="volume") if len(_tmp) > 0 else 0.0
+                ),
+                "Lattice Constants": lattice_constants,
+                "Lattice Type": lattice_type,
+                "Maximum Number of Atoms": maximum_number_of_atoms,
+                "Number of Atoms": number_of_atoms,
+            }
 
-            # Remove temporary cluster
-            del _tmp
+        # Iterate over all possible combinations of angles and translations
+        combinations = list(
+            itertools.product(
+                angles, angles, angles, translations, translations, translations
+            )
+        )
+
+        log = Parallel(n_jobs=nthreads)(
+            delayed(_evaluate_cluster_configuration)(
+                self,
+                phi,
+                theta,
+                psi,
+                x,
+                y,
+                z,
+                cluster,
+            )
+            for phi, theta, psi, x, y, z in tqdm(
+                combinations, desc="> Optimizing cluster"
+            )
+        )
 
         # Convert optimization to DataFrame
         log = pandas.DataFrame(log)
