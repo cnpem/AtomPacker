@@ -258,7 +258,7 @@ You can access the openings diameters using the ``diameters`` attribute of the O
 
 .. code-block:: python
 
-    >>> print(cage.cavity.openings.areas)
+    >>> print(cage.cavity.openings.diameters)
     {'OAA': 7.444737563025417, 'OAB': 7.228675599024421, 'OAC': 7.260311091959885, 'OAD': 7.547498740076157}
 
 You can also save the openings structure using the `Openings.save <api.html#AtomPacker.Openings.save>`_ method.
