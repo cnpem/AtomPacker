@@ -133,12 +133,12 @@ class Cluster:
             atoms in the cluster, considering their radius.
 
             * 'shape': uses `ase.cluster.Cluster.get_diameter('shape')` \
-            to return the diameter of a sphere with the same volume as \
-            the atoms.
-
-            * 'volume': uses `ase.cluster.Cluster.get_diameter('volume')` \
             to return the averaged diameter calculated from the \
             directions given by the defined surfaces.
+
+            * 'volume': uses `ase.cluster.Cluster.get_diameter('volume')` \
+            to return the diameter of a sphere with the same volume as \
+            the atoms.
 
         Returns
         -------
