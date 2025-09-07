@@ -723,7 +723,6 @@ detect_openings() first."
                 _tmp.write(os.path.join(optdir, filename))
 
             # Get the maximum diameter in the cluster
-            # Get the maximum diameter in the cluster
             if len(_tmp) > 1:
                 diameter = _tmp.get_all_distances().max()
             elif len(_tmp) == 1:
