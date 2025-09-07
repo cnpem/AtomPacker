@@ -723,7 +723,13 @@ detect_openings() first."
                 _tmp.write(os.path.join(optdir, filename))
 
             # Get the maximum diameter in the cluster
-            diameter = _tmp.get_all_distances().max()
+            # Get the maximum diameter in the cluster
+            if len(_tmp) > 1:
+                diameter = _tmp.get_all_distances().max()
+            elif len(_tmp) == 1:
+                diameter = 2 * _tmp.info.get("radii")
+            else:
+                diameter = 0.0
 
             # Get maximum number of atoms in the cluster
             maximum_number_of_atoms = int(
