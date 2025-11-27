@@ -329,6 +329,11 @@ are: .cif, .pdb, .xyz, .mol2."
         ValueError
             If the cage is not loaded, cavity is not detected, or
             clashing_tolerance < 0.
+
+        Warns
+        -----
+        UserWarning
+            If no atoms were packed inside the cavity.
         """
         if self.universe is None:
             raise ValueError("No cage loaded. Please run load() first.")
@@ -397,8 +402,14 @@ are: .cif, .pdb, .xyz, .mol2."
             verbose=verbose,
         )
 
-        # Create `AtomPacker.structure.Cluster` object
-        self.cluster = Cluster(cluster=_cluster, cavity=self.cavity, log=log)
+        if len(_cluster) > 0:
+            # Create `AtomPacker.structure.Cluster` object
+            self.cluster = Cluster(cluster=_cluster, cavity=self.cavity, log=log)
+        else:
+            warnings.warn(
+                "No atoms were packed: the nanocluster does not fit \
+inside the cavity with the current parameters."
+            )
 
     def preview(
         self,
