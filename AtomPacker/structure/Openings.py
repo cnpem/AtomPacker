@@ -213,7 +213,7 @@ class Openings:
             warnings.warn("Cavity has more than one cavity.")
 
         # Calculate depth of cavity points
-        depths, _, _ = depth(cavities, step, nthreads=nthreads, nverbose=verbose)
+        depths, _, _ = depth(cavities, step, nthreads=nthreads, verbose=verbose)
 
         # Calculate openings and area of openings
         nopenings, grid, aopenings = openings(
