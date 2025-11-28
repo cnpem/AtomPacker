@@ -35,6 +35,7 @@ class Openings:
         step: float,
         vertices: numpy.ndarray,
         openings_cutoff: float = 1,
+        nthreads: int | None = None,
         verbose: bool = False,
     ):
         """
@@ -51,6 +52,9 @@ class Openings:
         openings_cutoff : float, optional
             The cutoff value for detecting openings (default is 1). The minimum
             number of points in an opening to be considered valid.
+        nthreads : int, optional
+            Number of threads, by default None. If None, the number of threads
+            is `os.cpu_count() - 1`.
         verbose : bool, optional
             If True, print detailed information during processing (default is False).
         """
@@ -59,7 +63,7 @@ class Openings:
         self.areas: dict[str, float]
 
         self.nopenings, self.grid, self.areas = self._detect(
-            cavities, step, openings_cutoff=openings_cutoff, verbose=verbose
+            cavities, step, openings_cutoff=openings_cutoff, nthreads=nthreads, verbose=verbose
         )
         self.diameters: dict[str, float] = self._get_diameter()
 
@@ -175,6 +179,7 @@ class Openings:
         cavities: numpy.ndarray,
         step: float,
         openings_cutoff: float = 1,
+        nthreads: int | None = None,
         verbose: bool = False,
     ) -> tuple[int, numpy.ndarray, dict[str, float]]:
         """
@@ -189,6 +194,9 @@ class Openings:
         openings_cutoff : float, optional
             The cutoff value for detecting openings (default is 1). The minimum
             number of points in an opening to be considered valid.
+        nthreads : int, optional
+            Number of threads, by default None. If None, the number of threads
+            is `os.cpu_count() - 1`.
         verbose : bool, optional
             If True, print detailed information during processing (default is False).
 
@@ -205,7 +213,7 @@ class Openings:
             warnings.warn("Cavity has more than one cavity.")
 
         # Calculate depth of cavity points
-        depths, _, _ = depth(cavities, step, verbose=verbose)
+        depths, _, _ = depth(cavities, step, nthreads=nthreads, nverbose=verbose)
 
         # Calculate openings and area of openings
         nopenings, grid, aopenings = openings(
@@ -213,6 +221,7 @@ class Openings:
             depths,
             step=step,
             openings_cutoff=openings_cutoff,
+            nthreads=nthreads,
             verbose=verbose,
         )
 

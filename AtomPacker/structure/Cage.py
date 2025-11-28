@@ -140,7 +140,7 @@ class Cage:
             Surface) or SAS (Solvent Accessible Surface), by default SES.
         nthreads : int, optional
             Number of threads, by default None. If None, the number of threads
-            is `os.cpu_count() - 1`. If -1, uses all available threads.
+            is `os.cpu_count() - 1`.
         verbose : bool, optional
             Print extra information to standard output, by default False.
         kwargs : dict[str, object], optional
@@ -318,8 +318,7 @@ are: .cif, .pdb, .xyz, .mol2."
             Directory to save files. If None, uses current working directory.
         nthreads : int | None, optional
             Number of threads to use for parallel processing. If None, uses
-            `os.cpu_count() - 1`. Default is None. If -1, uses all available
-            threads.
+            `os.cpu_count() - 1`. Default is None.
         verbose : bool, optional
             If True, prints detailed information during processing (default is
             False).
@@ -626,8 +625,7 @@ detect_openings() first."
             Directory to save files. If None, uses current working directory.
         nthreads : int | None, optional
             Number of threads to use for parallel processing. If None, uses
-            `os.cpu_count() - 1`. Default is None. If -1, uses all available
-            threads.
+            `os.cpu_count() - 1`. Default is None.
         verbose : bool, optional
             If True, prints detailed information during processing (default is
             False).

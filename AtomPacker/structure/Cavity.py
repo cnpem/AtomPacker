@@ -100,7 +100,7 @@ Users can select cavities using select_cavity method."
             )
         return ((self.grid > 1).sum() * (self._step**3)).round(2)
 
-    def detect_openings(self, openings_cutoff: int = 1, verbose: bool = False) -> None:
+    def detect_openings(self, openings_cutoff: int = 1, nthreads: int | None = None, verbose: bool = False) -> None:
         """
         Detect openings in the cavity.
 
@@ -113,6 +113,9 @@ Users can select cavities using select_cavity method."
         openings_cutoff : float, optional
             The cutoff value for detecting openings (default is 1). The minimum
             number of points in an opening to be considered valid.
+        nthreads : int, optional
+            Number of threads, by default None. If None, the number of threads
+            is `os.cpu_count() - 1`.
         verbose : bool, optional
             If True, print detailed information during processing (default is False).
 
@@ -129,6 +132,7 @@ Users can select cavities using select_cavity method."
             self._step,
             self._vertices,
             openings_cutoff=openings_cutoff,
+            nthreads=nthreads,
             verbose=verbose,
         )
 
