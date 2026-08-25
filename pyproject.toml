@@ -49,7 +49,7 @@ dynamic = ["version"]
 
 [dependency-groups]
 dev = ["black>=26.1.0", "flake8>=7.3.0", "pytest>=9.0.0"]
-docs = ["sphinx>=9.1.0", "sphinx-rtd-theme>=3.1.0"]
+docs = ["sphinx>=9.0.0", "sphinx-rtd-theme>=3.1.0"]
 
 [project.urls]
 homepage = "https://github.com/cnpem/AtomPacker"
