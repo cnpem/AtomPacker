@@ -743,7 +743,7 @@ detect_openings() first."
             maximum_number_of_atoms = int(
                 numpy.ceil(
                     self.cavity.volume
-                    / ((4 / 3) * numpy.pi * self.universe.atoms.radii[0] ** 3)
+                    / ((4 / 3) * numpy.pi * radii ** 3)
                 )
             )
 
