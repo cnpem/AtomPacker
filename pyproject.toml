@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77.0.3,<83", "wheel>=0.45.0"]
+requires = ["setuptools>=77.0.3,<85", "wheel>=0.45.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -40,14 +40,14 @@ dependencies = [
     "MDAnalysis>=2.9.0,<3.0.0",
     "numpy>=2.0.0,<2.5.0",
     "pandas>=2.3.0,<3.1.0",
-    "plotly>=6.0.0,<6.8.0",
+    "plotly>=6.0.0,<6.10.0",
     "pyKVFinder>=0.9.0,<1.0.0",
     "scikit-learn>=1.7.0,<2.0.0",
     "tqdm>=4.67.0",
 ]
 dynamic = ["version"]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = ["black>=26.1.0", "flake8>=7.3.0", "pytest>=9.0.0"]
 docs = ["sphinx>=9.1.0", "sphinx-rtd-theme>=3.1.0"]
 
@@ -76,3 +76,6 @@ version = { attr = "AtomPacker.__version__" }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--import-mode=importlib"]
+
+[tool.uv.dependency-groups]
+docs = {requires-python = ">=3.12"}
