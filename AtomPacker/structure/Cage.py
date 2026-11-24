@@ -26,6 +26,7 @@ from MDAnalysis import Universe
 from plotly.express import scatter_3d
 from pyKVFinder import detect, get_vertices
 from sklearn.decomposition import PCA
+from sklearn.neighbors import NearestNeighbors
 from tqdm import tqdm
 
 from ..core import load_mmcif, load_mol2, load_pdb, load_xyz
@@ -700,9 +701,15 @@ detect_openings() first."
         # Translate the cluster to the center (cage centroid)
         cluster.positions += center
 
-        # Get radii for nanocluster
-        distances = cluster.get_all_distances()
-        radii = (distances[distances > 0] / 2).min()
+        # Get radii for nanocluster (half of the nearest-neighbour distance).
+        # A KD-tree nearest-neighbour query is used instead of the full
+        # pairwise distance matrix, which needs O(N^2) memory and exhausts
+        # RAM for large cages (e.g., ~27k atoms -> >10 GB).
+        nn_distances, _ = (
+            NearestNeighbors(n_neighbors=1).fit(cluster.positions).kneighbors()
+        )
+        nn_distances = nn_distances.ravel()
+        radii = (nn_distances[nn_distances > 0] / 2).min()
         cluster.info.update({"radii": radii})
 
         # Get lattice constants for nanocluster
