@@ -138,7 +138,7 @@ You can also save the cavity structure using the `Cavity.save <api.html#AtomPack
 3. Detect cavity openings
 =========================
 
-Next, we will detect the openings of the cavity. The `Cage.Cavity.detect_openings <api.html#AtomPacker.Cage.detect_openings>`_ method will detect the openings.
+Next, we will detect the openings of the cavity. The `Cavity.detect_openings <api.html#AtomPacker.Cavity.detect_openings>`_ method will detect the openings.
 
 .. code-block:: python
 
@@ -278,12 +278,29 @@ Now that the cavity and its openings have been detected, you can pack nanopartic
 
 .. note::
 
-    To apply an optimization algorithm to the packed cluster, set angles and translations. Translations should be a list or numpy array of angles in degrees, and translations should be a list or numpy array of translation values in Angstroms. For example:
+    To apply an optimization algorithm to the packed cluster, set angles and translations. Angles should be a list or numpy array of angles in degrees, and translations should be a list or numpy array of translation values in Angstroms. For example:
 
     .. code-block:: python
         
         angles = [-75, -50, -25, 0, 25, 50, 75]
         translations = [-0.2, 0.0, 0.2]
+
+    The rotations (ϕ, θ, ψ) and translations (x, y, z) are combined as a Cartesian product, so these values give
+    7³ × 3³ = 9,261 configurations. Each configuration is evaluated in parallel (``nthreads``; default
+    ``os.cpu_count() - 1``) and the one with the largest volume-based diameter is kept. All sampled
+    configurations are reported in ``cage.cluster.log``.
+
+.. note::
+
+    By default, a nanoparticle atom is removed when its distance to any cage atom is shorter than the sum of
+    their radii (rigid cage). The ``clash_tolerance`` parameter (Å) subtracts an allowed overlap from this
+    contact distance, so positive values allow closer host–guest contacts and pack more atoms. This is a
+    simple way to account for thermal fluctuations of the cage (e.g., estimated from crystallographic
+    B-factors). The tolerance does not change the cavity itself.
+
+    .. code-block:: python
+
+        >>> cage.pack(atom_type="Au", lattice_type="fcc", clash_tolerance=0.5)
 
 The packed cluster will be stored in the ``cluster`` attribute of the Cage object.
 
@@ -345,7 +362,7 @@ You can access the cluster coordinates using the ``coordinates`` attribute of th
      [ -2.44353   29.798132  15.913403]
      [ -2.44353   31.838133  13.873403]]
 
-You can also save the cavity structure using the `Cluster.save <api.html#AtomPacker.Cluster.save>`_ method.
+You can also save the cluster structure using the `Cluster.save <api.html#AtomPacker.Cluster.save>`_ method.
 
 .. code-block:: python
 

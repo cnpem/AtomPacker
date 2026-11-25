@@ -6,6 +6,7 @@ The requirements for installing AtomPacker are:
 
 * ase
 * biopython
+* joblib
 * MDAnalysis
 * numpy
 * pandas

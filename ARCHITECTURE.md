@@ -19,10 +19,10 @@ class Cage {
 + MDAnalysis.Universe universe
 + detect_cavity(float step, float probe_in, float probe_out, float removal_distance, float volume_cutoff, str surface, int nthreads, bool verbose, dict~str,object~ **kwargs) void
 + load(filename) void
-+ pack(str lattice_type, str atom_type, float atom_radius, float a, float b, float c) void
++ pack(str atom_type, str lattice_type, float a, float b, float c, float clash_tolerance, list~float~ angles, list~float~ translations, bool optsave, str optdir, int nthreads, bool verbose) void
 + preview(bool show_cavity, bool show_cluster, str renderer, dict~str,object~ **kwargs) void
-# _build_cluster(str atom_type, str lattice_type, tuple~float~ lattice_constants, numpy.ndarray center) tuple~ase.cluster.Cluster, int~
-# _filter_clashing_atoms(ase.cluster.Cluster cluster, float clashing_tolerance) ase.cluster.Cluster
+# _build_cluster(str atom_type, str lattice_type, tuple~float~ lattice_constants, numpy.ndarray center, float clash_tolerance, list~float~ angles, list~float~ translations, bool optsave, str optdir, int nthreads, bool verbose) tuple~ase.cluster.Cluster, pandas.DataFrame~
+# _filter_clashing_atoms(ase.cluster.Cluster cluster, float clash_tolerance) ase.cluster.Cluster
 # _filter_outside_cavity(ase.cluster.Cluster cluster) ase.cluster.Cluster
 # _get_cluster_layers(str atom_type, float factor) numpy.ndarray
 # _get_obb() tuple~numpy.ndarray, numpy.ndarray~
