@@ -232,7 +232,7 @@ def test_filter_clashing_atoms(pdb):
     cluster.info.update({"radii": 1.441932148})
 
     # Filter clashing atoms
-    cluster = cage._filter_clashing_atoms(cluster, clashing_tolerance=0.0)
+    cluster = cage._filter_clashing_atoms(cluster, clash_tolerance=0.0)
 
     assert len(cluster) == 0
 
@@ -261,7 +261,7 @@ def test_filter_not_clashing_atoms(pdb):
     cluster.info.update({"radii": 1.441932148})
 
     # Filter clashing atoms
-    cluster = cage._filter_clashing_atoms(cluster, clashing_tolerance=0.0)
+    cluster = cage._filter_clashing_atoms(cluster, clash_tolerance=0.0)
 
     assert len(cluster) == 1
 
@@ -331,7 +331,7 @@ def test_build_cluster(pdb):
         lattice_type="fcc",
         lattice_constants=4.08,
         center=cage.centroid,
-        clashing_tolerance=0.0,
+        clash_tolerance=0.0,
         angles=[0.0],
         translations=[0.0],
         optsave=False,
@@ -364,7 +364,7 @@ def test_pack(pdb):
         "Au",
         "fcc",
         4.08,
-        clashing_tolerance=0.0,
+        clash_tolerance=0.0,
         angles=[0.0],
         translations=[0.0],
         optsave=False,
@@ -385,7 +385,7 @@ def test_pack_with_invalid_lattice_type(pdb):
             "Au",
             "invalid",
             4.08,
-            clashing_tolerance=0.0,
+            clash_tolerance=0.0,
             angles=[0.0],
             translations=[0.0],
             optsave=False,
@@ -393,7 +393,7 @@ def test_pack_with_invalid_lattice_type(pdb):
         )
 
 
-def test_pack_with_negative_clashing_tolerance(pdb):
+def test_pack_with_negative_clash_tolerance(pdb):
     cage = Cage()
     cage.load(pdb)
 
@@ -402,7 +402,7 @@ def test_pack_with_negative_clashing_tolerance(pdb):
             "Au",
             "fcc",
             4.08,
-            clashing_tolerance=-1.0,
+            clash_tolerance=-1.0,
             angles=[0.0],
             translations=[0.0],
             optsave=False,
@@ -417,7 +417,7 @@ def test_pack_for_unloaded_cage():
             "Au",
             "fcc",
             4.08,
-            clashing_tolerance=0.0,
+            clash_tolerance=0.0,
             angles=[0.0],
             translations=[0.0],
             optsave=False,
@@ -434,7 +434,7 @@ def test_pack_without_cavity(pdb):
             "Au",
             "fcc",
             4.08,
-            clashing_tolerance=0.0,
+            clash_tolerance=0.0,
             angles=[0.0],
             translations=[0.0],
             optsave=False,
@@ -444,3 +444,30 @@ def test_pack_without_cavity(pdb):
 
 if __name__ == "__main__":
     pytest.main()
+
+
+def test_pack_deprecated_clashing_tolerance(pdb):
+    cage = Cage()
+    cage.load(pdb)
+    cage.detect_cavity(
+        step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0
+    )
+    with pytest.warns(DeprecationWarning):
+        cage.pack("Au", "fcc", 4.08, clashing_tolerance=0.5)
+    new = Cage()
+    new.load(pdb)
+    new.detect_cavity(
+        step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0
+    )
+    new.pack("Au", "fcc", 4.08, clash_tolerance=0.5)
+    assert cage.cluster.number_of_atoms == new.cluster.number_of_atoms
+
+
+def test_pack_conflicting_clash_tolerances(pdb):
+    cage = Cage()
+    cage.load(pdb)
+    cage.detect_cavity(
+        step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0
+    )
+    with pytest.raises(ValueError), pytest.warns(DeprecationWarning):
+        cage.pack("Au", "fcc", 4.08, clash_tolerance=0.2, clashing_tolerance=0.5)

@@ -59,8 +59,10 @@ Packing nanoparticle atoms, based on ASE nanocluster, and filter atoms inside a 
 >>> # cage.cavity.openings.save("tests/openings.pdb")
 # 4: Pack nanocluster into the cavity
 >>> cage.pack(atom_type="Au", lattice_type="fcc", a=None, b=None, c=None)
+# Optional: allow a small host-guest overlap (Å) to mimic cage flexibility
+>>> # cage.pack(atom_type="Au", lattice_type="fcc", clash_tolerance=0.5)
 # Uncomment to preview the cluster structure for quality control.
->>> # cage.cavity.preview()
+>>> # cage.cluster.preview()
 # Uncomment to save the cluster structure.
 >>> # cage.cluster.save("tests/cluster.pdb")
 # Uncomment to preview the cage, cavity, openings and cluster structures.
@@ -77,7 +79,7 @@ If you find `AtomPacker` useful for you, please cite the following references:
 
 - Guerra, J. V. S., Ribeiro-Filho, H. V., Jara, G. E., Bortot, L. O., Pereira, J. G. C., & Lopes-de-Oliveira, P. S. (2021). pyKVFinder: an efficient and integrable Python package for biomolecular cavity detection and characterization in data science. BMC bioinformatics, 22(1), 607. https://doi.org/10.1186/s12859-021-04519-4.
 
-- (manuscript in preparation) Guerra, J. V. S., Jara, G. E., Hokama, R. H., Bourissou, D. & Szalóki, G. (2026) AtomPacker: a Python Package for the Modellization of Confined Nanoparticles.
+- (manuscript in preparation) Guerra, J. V. S., Jara, G. E., Hokama, R. H., Bourissou, D. & Szalóki, G. (2026) Modellization of Confined Nanoparticles with AtomPacker.
 
 ## License
 

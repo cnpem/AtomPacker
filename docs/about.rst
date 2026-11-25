@@ -25,16 +25,16 @@ Scientific team
 
 [2] Laboratoire Hétérochimie Fondamentale et Appliquée, CNRS, Université Toulouse III─Paul Sabatier.
 
-If you have any further questions, inquires or if you wish to contribute to AtomPacker project, please contact us at joao.guerra@lnbio.cnpem.br.
+If you have any further questions, inquiries or if you wish to contribute to AtomPacker project, please contact us at joao.guerra@lnbio.cnpem.br.
 
 Citing
 ======
 
-If you use **AtomPacker** in your reserach, please cite the following references:
+If you use **AtomPacker** in your research, please cite the following references:
 
 * Guerra, J. V. S., Ribeiro-Filho, H. V., Jara, G. E., Bortot, L. O., Pereira, J. G. C., & Lopes-de-Oliveira, P. S. (2021). pyKVFinder: an efficient and integrable Python package for biomolecular cavity detection and characterization in data science. BMC bioinformatics, 22(1), 607. `<https://doi.org/10.1186/s12859-021-04519-4>`_.
 
-* (manuscript in preparation) Guerra, J. V. S., Jara, G. E., Lopes-de-Oliveira, P. S., & Szalóki, G. (2024). AtomPacker: a Python package for packing nanocluster into supramolecular cages.
+* (manuscript in preparation) Guerra, J. V. S., Jara, G. E., Hokama, R. H., Bourissou, D. & Szalóki, G. (2026). Modellization of Confined Nanoparticles with AtomPacker.
 
 Funding
 =======

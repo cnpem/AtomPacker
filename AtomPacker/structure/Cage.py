@@ -275,13 +275,14 @@ are: .cif, .pdb, .xyz, .mol2."
         a: float | None = None,
         b: float | None = None,
         c: float | None = None,
-        clashing_tolerance: float = 0.0,
+        clash_tolerance: float = 0.0,
         angles: numpy.ndarray | list[float] = [0.0],
         translations: numpy.ndarray | list[float] = [0.0],
         optsave: bool = False,
         optdir: str | None = None,
         nthreads: int | None = None,
         verbose: bool = False,
+        clashing_tolerance: float | None = None,
     ) -> None:
         """
         Pack a cluster of atoms into the cage structure.
@@ -299,7 +300,7 @@ are: .cif, .pdb, .xyz, .mol2."
             Lattice constant 'b'. If None, uses values from AtomPacker or ASE.
         c : float | None, optional
             Lattice constant 'c'. If None, uses values from AtomPacker or ASE.
-        clashing_tolerance : float, optional
+        clash_tolerance : float, optional
             Allowed overlap (Å) between cluster and cage atoms. A cluster
             atom is removed when its distance to any cage atom is shorter
             than the sum of their radii minus this tolerance, so positive
@@ -326,17 +327,23 @@ are: .cif, .pdb, .xyz, .mol2."
         verbose : bool, optional
             If True, prints detailed information during processing (default is
             False).
+        clashing_tolerance : float | None, optional
+            Deprecated alias of `clash_tolerance`; will be removed in a
+            future release.
 
         Raises
         ------
         ValueError
-            If the cage is not loaded, cavity is not detected, or
-            clashing_tolerance < 0.
+            If the cage is not loaded, cavity is not detected,
+            clash_tolerance < 0, or both clash_tolerance and the deprecated
+            clashing_tolerance are given with different values.
 
         Warns
         -----
         UserWarning
             If no atoms were packed inside the cavity.
+        DeprecationWarning
+            If the deprecated `clashing_tolerance` keyword is used.
         """
         if self.universe is None:
             raise ValueError("No cage loaded. Please run load() first.")
@@ -386,9 +393,23 @@ are: .cif, .pdb, .xyz, .mol2."
                 lattice types are: 'bcc', 'fcc', 'hcp', and 'sc'."
             )
 
-        # Check if clashing tolerance is greater than or equal to 0
-        if clashing_tolerance < 0:
-            raise ValueError("Clashing tolerance must be greater than or equal to 0.")
+        # Deprecated keyword: clashing_tolerance -> clash_tolerance
+        if clashing_tolerance is not None:
+            warnings.warn(
+                "`clashing_tolerance` is deprecated; use `clash_tolerance` instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            if clash_tolerance not in (0.0, clashing_tolerance):
+                raise ValueError(
+                    "Got different values for `clash_tolerance` and the deprecated "
+                    "`clashing_tolerance`; use only `clash_tolerance`."
+                )
+            clash_tolerance = clashing_tolerance
+
+        # Check if clash tolerance is greater than or equal to 0
+        if clash_tolerance < 0:
+            raise ValueError("Clash tolerance must be greater than or equal to 0.")
 
         # Optimize cluster packing
         _cluster, log = self._build_cluster(
@@ -396,7 +417,7 @@ are: .cif, .pdb, .xyz, .mol2."
             lattice_type,
             lattice_constants=lattice_constants,
             center=self.centroid,
-            clashing_tolerance=clashing_tolerance,
+            clash_tolerance=clash_tolerance,
             angles=angles,
             translations=translations,
             optsave=optsave,
@@ -584,7 +605,7 @@ detect_openings() first."
         lattice_type: str,
         lattice_constants: tuple[float, float] | tuple[float] | None,
         center: numpy.ndarray,
-        clashing_tolerance: float = 0.0,
+        clash_tolerance: float = 0.0,
         angles: numpy.ndarray | list[float] = [0.0],
         translations: numpy.ndarray | list[float] = [0.0],
         optsave: bool = False,
@@ -609,7 +630,7 @@ detect_openings() first."
             values from `ase.data` will be used.
         center : numpy.ndarray
             The center of the cluster.
-        clashing_tolerance : float, optional
+        clash_tolerance : float, optional
             Allowed overlap (Å) between cluster and cage atoms. A cluster
             atom is removed when its distance to any cage atom is shorter
             than the sum of their radii minus this tolerance, so positive
@@ -736,7 +757,7 @@ detect_openings() first."
 
             # Filter atoms clashing with the cage
             _tmp = self._filter_clashing_atoms(
-                _tmp, clashing_tolerance=clashing_tolerance
+                _tmp, clash_tolerance=clash_tolerance
             )
 
             # Save the cluster if requested
@@ -825,7 +846,7 @@ detect_openings() first."
 
         # Filter atoms clashing with the cage
         cluster = self._filter_clashing_atoms(
-            cluster, clashing_tolerance=clashing_tolerance
+            cluster, clash_tolerance=clash_tolerance
         )
 
         return cluster, log
@@ -833,7 +854,7 @@ detect_openings() first."
     def _filter_clashing_atoms(
         self,
         cluster: ase.cluster.Cluster,
-        clashing_tolerance: float = 0.0,
+        clash_tolerance: float = 0.0,
     ) -> ase.cluster.Cluster:
         """
         Filter atoms in the cluster that are clashing with the cage.
@@ -842,7 +863,7 @@ detect_openings() first."
         ----------
         cluster : ase.cluster.Cluster
             The cluster of atoms.
-        clashing_tolerance : float, optional
+        clash_tolerance : float, optional
             Allowed overlap (Å): an atom clashes when its distance to a cage
             atom is shorter than the sum of their radii minus this value,
             by default 0.0.
@@ -858,7 +879,7 @@ detect_openings() first."
         limits = (
             cluster_radii[:, numpy.newaxis]
             + self.universe.atoms.radii
-            - clashing_tolerance
+            - clash_tolerance
         )
 
         # Get distance between cluster positions and cage positions
