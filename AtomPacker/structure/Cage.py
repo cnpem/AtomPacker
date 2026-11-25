@@ -300,8 +300,11 @@ are: .cif, .pdb, .xyz, .mol2."
         c : float | None, optional
             Lattice constant 'c'. If None, uses values from AtomPacker or ASE.
         clashing_tolerance : float, optional
-            Minimum allowed distance (Å) between cluster and cage atoms.
-            Default is 0.0.
+            Allowed overlap (Å) between cluster and cage atoms. A cluster
+            atom is removed when its distance to any cage atom is shorter
+            than the sum of their radii minus this tolerance, so positive
+            values allow closer contacts (e.g., to mimic host flexibility)
+            and pack more atoms. Must be >= 0. Default is 0.0.
         angles : numpy.ndarray | list[float], optional
             Rotation angles for cluster optimization. If not specified, no
             optimization is performed. Default is [0.0].
@@ -607,8 +610,11 @@ detect_openings() first."
         center : numpy.ndarray
             The center of the cluster.
         clashing_tolerance : float, optional
-            Minimum allowed distance (Å) between cluster and cage atoms.
-            Default is 0.0.
+            Allowed overlap (Å) between cluster and cage atoms. A cluster
+            atom is removed when its distance to any cage atom is shorter
+            than the sum of their radii minus this tolerance, so positive
+            values allow closer contacts (e.g., to mimic host flexibility)
+            and pack more atoms. Must be >= 0. Default is 0.0.
         angles : numpy.ndarray | list[float], optional
             Rotation angles for cluster optimization. If not specified, no
             optimization is performed. Default is [0.0].
@@ -837,7 +843,9 @@ detect_openings() first."
         cluster : ase.cluster.Cluster
             The cluster of atoms.
         clashing_tolerance : float, optional
-            The clashing tolerance (Å), by default 0.0.
+            Allowed overlap (Å): an atom clashes when its distance to a cage
+            atom is shorter than the sum of their radii minus this value,
+            by default 0.0.
         """
         # Get radii of atoms in the cluster
         # If cluster has more than one atom, get the minimum distance between
