@@ -7,14 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  pages:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    permissions:
-      pages: write
-      id-token: write
     steps:
       - name: Setup | Checkout repository
         uses: actions/checkout@v4
@@ -25,7 +19,29 @@ jobs:
       - name: Setup | Export requirements
         run: uv export --no-hashes --only-group docs > ./docs/requirements.txt
 
-      - id: deployment
+      - id: build
         uses: sphinx-notes/pages@v3
         with:
           checkout: false
+          publish: false
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: ${{ steps.build.outputs.artifact }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - id: deployment
+        uses: actions/deploy-pages@v5
