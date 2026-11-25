@@ -444,30 +444,3 @@ def test_pack_without_cavity(pdb):
 
 if __name__ == "__main__":
     pytest.main()
-
-
-def test_pack_deprecated_clashing_tolerance(pdb):
-    cage = Cage()
-    cage.load(pdb)
-    cage.detect_cavity(
-        step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0
-    )
-    with pytest.warns(DeprecationWarning):
-        cage.pack("Au", "fcc", 4.08, clashing_tolerance=0.5)
-    new = Cage()
-    new.load(pdb)
-    new.detect_cavity(
-        step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0
-    )
-    new.pack("Au", "fcc", 4.08, clash_tolerance=0.5)
-    assert cage.cluster.number_of_atoms == new.cluster.number_of_atoms
-
-
-def test_pack_conflicting_clash_tolerances(pdb):
-    cage = Cage()
-    cage.load(pdb)
-    cage.detect_cavity(
-        step=0.6, probe_in=1.4, probe_out=10.0, removal_distance=1.0, volume_cutoff=5.0
-    )
-    with pytest.raises(ValueError), pytest.warns(DeprecationWarning):
-        cage.pack("Au", "fcc", 4.08, clash_tolerance=0.2, clashing_tolerance=0.5)

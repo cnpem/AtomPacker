@@ -302,8 +302,6 @@ Now that the cavity and its openings have been detected, you can pack nanopartic
 
         >>> cage.pack(atom_type="Au", lattice_type="fcc", clash_tolerance=0.5)
 
-    ``clash_tolerance`` replaces the deprecated ``clashing_tolerance`` keyword.
-
 The packed cluster will be stored in the ``cluster`` attribute of the Cage object.
 
 If you want to preview the cluster structure for quality control, you can use the `Cluster.preview <api.html#AtomPacker.Cluster.preview>`_ method.

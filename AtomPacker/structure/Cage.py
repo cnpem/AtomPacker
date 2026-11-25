@@ -282,7 +282,6 @@ are: .cif, .pdb, .xyz, .mol2."
         optdir: str | None = None,
         nthreads: int | None = None,
         verbose: bool = False,
-        clashing_tolerance: float | None = None,
     ) -> None:
         """
         Pack a cluster of atoms into the cage structure.
@@ -327,23 +326,17 @@ are: .cif, .pdb, .xyz, .mol2."
         verbose : bool, optional
             If True, prints detailed information during processing (default is
             False).
-        clashing_tolerance : float | None, optional
-            Deprecated alias of `clash_tolerance`; will be removed in a
-            future release.
 
         Raises
         ------
         ValueError
-            If the cage is not loaded, cavity is not detected,
-            clash_tolerance < 0, or both clash_tolerance and the deprecated
-            clashing_tolerance are given with different values.
+            If the cage is not loaded, cavity is not detected, or
+            clash_tolerance < 0.
 
         Warns
         -----
         UserWarning
             If no atoms were packed inside the cavity.
-        DeprecationWarning
-            If the deprecated `clashing_tolerance` keyword is used.
         """
         if self.universe is None:
             raise ValueError("No cage loaded. Please run load() first.")
@@ -392,20 +385,6 @@ are: .cif, .pdb, .xyz, .mol2."
                 f"Unsupported lattice type: {lattice_type}. Supported \
                 lattice types are: 'bcc', 'fcc', 'hcp', and 'sc'."
             )
-
-        # Deprecated keyword: clashing_tolerance -> clash_tolerance
-        if clashing_tolerance is not None:
-            warnings.warn(
-                "`clashing_tolerance` is deprecated; use `clash_tolerance` instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            if clash_tolerance not in (0.0, clashing_tolerance):
-                raise ValueError(
-                    "Got different values for `clash_tolerance` and the deprecated "
-                    "`clashing_tolerance`; use only `clash_tolerance`."
-                )
-            clash_tolerance = clashing_tolerance
 
         # Check if clash tolerance is greater than or equal to 0
         if clash_tolerance < 0:
